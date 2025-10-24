@@ -96,16 +96,18 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
       return res.status(404).json({ error: "Wishlist not found" });
     }
 
+    const wishlist = wishlistResult.rows[0];
+
     // 2️⃣ Get all collection items linked to this wishlist
     const collectionsResult = await connection.query(
       "SELECT * FROM collectionitem WHERE wishlist_id = $1 ORDER BY created_at DESC",
       [wishlistId]
     );
 
-    res.status(200).json({
-      wishlist: wishlistResult.rows[0],
-      collections: collectionsResult.rows
-    });
+    // 3️⃣ Attach collections to the wishlist object
+    wishlist.collections = collectionsResult.rows;
+
+    res.status(200).json({ wishlist });
 
   } catch (error) {
     console.error("Error fetching collections:", error);
