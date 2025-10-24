@@ -1,11 +1,12 @@
 // import fs from 'fs';
 // import https from 'https';
 
-const fs = require('fs');
-const https = require('https');
+// const fs = require('fs');
+// const https = require('https');
 
 const {Client}=require('pg');
 const express = require('express')
+const serverless = require('serverless-http');
 
 const dotenv = require('dotenv').config();
 const errorHandler = require("./middleware/errorHandler");
@@ -339,15 +340,15 @@ app.put("/api/collection/:collectionId", async (req, res) => {
 
 
 
-const httpsOptions = {
-    key: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.key'),
-    cert: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.crt')
-};
+// const httpsOptions = {
+//     key: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.key'),
+//     cert: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.crt')
+// };
 
-https.createServer(httpsOptions, app).listen(port, () => {
-    console.log(`HTTPS Server is running on port ${port}`);
-});
-
-// app.listen(port, () => {
-//     console.log(`Server is running on port ${port}`);
+// https.createServer(httpsOptions, app).listen(port, () => {
+//     console.log(`HTTPS Server is running on port ${port}`);
 // });
+
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
