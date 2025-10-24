@@ -6,7 +6,6 @@
 
 const {Client}=require('pg');
 const express = require('express')
-const serverless = require('serverless-http');
 
 const dotenv = require('dotenv').config();
 const errorHandler = require("./middleware/errorHandler");
