@@ -1,3 +1,6 @@
+import fs from 'fs';
+import https from 'https';
+
 const {Client}=require('pg');
 const express = require('express')
 
@@ -6,7 +9,6 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 app.use(express.json());
-
 
 const port = process.env.PORT || 5000;
 
@@ -334,7 +336,15 @@ app.put("/api/collection/:collectionId", async (req, res) => {
 
 
 
+const httpsOptions = {
+    key: fs.readFileSync('/etc/ssl/ashluxe/server.key'),
+    cert: fs.readFileSync('/etc/ssl/ashluxe/server.crt')
+};
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+https.createServer(httpsOptions, app).listen(port, () => {
+    console.log(`HTTPS Server is running on port ${port}`);
 });
+
+// app.listen(port, () => {
+//     console.log(`Server is running on port ${port}`);
+// });
