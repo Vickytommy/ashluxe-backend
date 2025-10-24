@@ -25,6 +25,10 @@ connection.connect()
   .catch(err => console.error("Connection error:", err));
 
 
+app.get('/', (req, res) => {
+    res.send('ASHLUXE WISHLIST API is running....');
+});
+
 // ADD COLLECTION
 app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
   const { wishlistId } = req.params;
