@@ -6,12 +6,20 @@
 
 const {Client}=require('pg');
 const express = require('express')
+const cors = require('cors');
 
 const dotenv = require('dotenv').config();
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 app.use(express.json());
+
+app.use(cors({
+  origin: ['https://ash-luxe.com', 'https://www.ash-luxe.com'], // allowed frontends
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
+
 
 const port = process.env.PORT || 5000;
 
