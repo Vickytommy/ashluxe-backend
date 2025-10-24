@@ -340,8 +340,8 @@ app.put("/api/collection/:collectionId", async (req, res) => {
 
 
 const httpsOptions = {
-    key: fs.readFileSync('../server.key'),
-    cert: fs.readFileSync('../server.crt')
+    key: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.key'),
+    cert: fs.readFileSync('/home/ec2-user/ashluxe-backend/server.crt')
 };
 
 https.createServer(httpsOptions, app).listen(port, () => {
