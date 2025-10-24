@@ -1,5 +1,8 @@
-import fs from 'fs';
-import https from 'https';
+// import fs from 'fs';
+// import https from 'https';
+
+const fs = require('fs');
+const https = require('https');
 
 const {Client}=require('pg');
 const express = require('express')
