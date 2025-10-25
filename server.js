@@ -97,7 +97,6 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
 // GET WISHLIST
 app.get("/api/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
-  const { first_name, last_name, image } = req.body;
 
   try {
     // 1️⃣ Check if wishlist exists
@@ -107,15 +106,7 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
     );
 
     if (wishlistResult.rowCount === 0) {
-      // Create a new wishlist with default values
-      const createWishlistResult = await connection.query(
-        `INSERT INTO wishlist (id, first_name, last_name)
-         VALUES ($1, ${first_name}, ${last_name})
-         RETURNING *`,
-        [wishlistId]
-      );
-      wishlistResult = createWishlistResult;
-      console.log('the result - ', wishlistResult);
+      return res.status(200).json({ message: "Wishlist not found", data: [] });
     }
 
     const wishlist = wishlistResult.rows[0];
