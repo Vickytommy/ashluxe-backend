@@ -106,7 +106,7 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
     );
 
     if (wishlistResult.rowCount === 0) {
-      return res.status(200).json({ message: "Wishlist not found", data: [] });
+      return res.status(404).json({ error: "Wishlist not found" });
     }
 
     const wishlist = wishlistResult.rows[0];
