@@ -20,7 +20,7 @@ app.use(cors({
   credentials: true
 }));
 
-
+const shopify_endpoint = "https://www.ashluxe.myshopify.com";
 const port = process.env.PORT || 5000;
 
 
@@ -117,8 +117,26 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
       [wishlistId]
     );
 
-    // 3️⃣ Attach collections to the wishlist object
-    wishlist.collections = collectionsResult.rows;
+    // // 3️⃣ Attach collections to the wishlist object
+    // wishlist.collections = collectionsResult.rows;
+
+
+
+    const collections = collectionsResult.rows;
+
+    // 3️⃣ For each collection, get its products
+    for (const collection of collections) {
+      const productsResult = await connection.query(
+        "SELECT * FROM collectionitem_product WHERE collectionitem_id = $1",
+        [collection.id]
+      );
+
+      collection.products = productsResult.rows;
+      collection.no_of_items = productsResult.rows.length;
+    }
+
+    // 5️⃣ Attach collections to wishlist
+    wishlist.collections = collections;
 
     res.status(200).json({ wishlist });
 
