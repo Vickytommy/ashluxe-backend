@@ -215,11 +215,15 @@ app.get("/api/share/:shareId", async (req, res) => {
       LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
       LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
       WHERE c.share_id = $1
+        AND c.public = TRUE
+        AND (c.expiry_date IS NULL OR c.expiry_date >= NOW())
       GROUP BY c.id, da.id
     `, [shareId]);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Collection item not found" });
+      return res.status(404).json({
+        error: "Collection item not found or link expired/unavailable",
+      });
     }
 
     res.json({ collection: result.rows[0] });
