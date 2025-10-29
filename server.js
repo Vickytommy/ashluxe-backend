@@ -188,6 +188,48 @@ app.get("/api/collection/:collectionId", async (req, res) => {
   }
 });
 
+// GET COLLECTION BY SHARE ID
+app.get("/api/share/:shareId", async (req, res) => {
+  const { shareId } = req.params;
+
+  try {
+    const result = await connection.query(`
+      SELECT 
+          c.*,
+          to_jsonb(da) AS delivery_address,
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object(
+              'id', p.id,
+              'product_id', p.product_id,
+              'product_handle', p.product_handle,
+              'title', p.title,
+              'description', p.description,
+              'price', p.price,
+              'image_url', p.image_url,
+              'gifted', p.gifted,
+              'quantity', p.quantity,
+              'variant_id', p.variant_id
+            )) FILTER (WHERE p.id IS NOT NULL), '[]'
+          ) AS products
+      FROM collectionitem c
+      LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
+      LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
+      WHERE c.share_id = $1
+      GROUP BY c.id, da.id
+    `, [shareId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Collection item not found" });
+    }
+
+    res.json({ collection: result.rows[0] });
+
+  } catch (err) {
+    console.error("Error fetching collection by share_id:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ADD PRODUCT TO COLLECTION
 app.post("/api/collection/:collectionId/product", async (req, res) => {
   // Wishlist ID is passed in the body to verify ownership (it's same as customer id)
