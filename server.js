@@ -315,6 +315,54 @@ app.post("/api/collection/:collectionId/product", async (req, res) => {
   }
 });
 
+// UPDATE PRODUCT VARIANT IN COLLECTION
+app.put("/api/collection/:collectionId/product/:productId/variant", async (req, res) => {
+  const { collectionId, productId } = req.params;
+  const { wishlist_id, variant_id } = req.body;
+
+  try {
+    // 1️⃣ Check if collectionitem exists AND belongs to the provided wishlist_id
+    const collectionCheck = await connection.query(
+      `SELECT id FROM collectionitem
+       WHERE id = $1 AND wishlist_id = $2`,
+      [collectionId, wishlist_id]
+    );
+
+    if (collectionCheck.rowCount === 0) {
+      return res.status(404).json({ error: "Collection not found for the provided wishlist" });
+    }
+
+    // 2️⃣ Check if product exists in the collection
+    const productCheck = await connection.query(
+      `SELECT id FROM collectionitem_product
+       WHERE collectionitem_id = $1 AND product_id = $2`,
+      [collectionId, productId]
+    );
+
+    if (productCheck.rowCount === 0) {
+      return res.status(404).json({ error: "Product not found in this collection" });
+    }
+
+    // 3️⃣ Update the variant_id
+    const updateResult = await connection.query(
+      `UPDATE collectionitem_product
+       SET variant_id = $1
+       WHERE collectionitem_id = $2 AND product_id = $3
+       RETURNING *`,
+      [variant_id, collectionId, productId]
+    );
+
+    res.status(200).json({
+      message: "Product variant updated successfully",
+      product: updateResult.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Error updating product variant:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // DELETE PRODUCT FROM COLLECTION
 app.delete("/api/collection/:collectionId/product/:productId", async (req, res) => {
   const { collectionId, productId } = req.params;
