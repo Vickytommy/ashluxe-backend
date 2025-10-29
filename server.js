@@ -195,8 +195,13 @@ app.get("/api/share/:shareId", async (req, res) => {
   try {
     const result = await connection.query(`
       SELECT 
-          c.*,
+          -- Collection data excluding no_of_views and wishlist_id
+          (to_jsonb(c) - 'no_of_views' - 'wishlist_id') AS collection,
+
+          -- Delivery address
           to_jsonb(da) AS delivery_address,
+
+          -- Products (without gifted)
           COALESCE(
             json_agg(DISTINCT jsonb_build_object(
               'id', p.id,
@@ -206,18 +211,26 @@ app.get("/api/share/:shareId", async (req, res) => {
               'description', p.description,
               'price', p.price,
               'image_url', p.image_url,
-              'gifted', p.gifted,
               'quantity', p.quantity,
               'variant_id', p.variant_id
             )) FILTER (WHERE p.id IS NOT NULL), '[]'
-          ) AS products
+          ) AS products,
+
+          -- Wishlist info (first_name, last_name, image)
+          jsonb_build_object(
+            'first_name', w.first_name,
+            'last_name', w.last_name,
+            'image', w.image
+          ) AS wishlist
+
       FROM collectionitem c
       LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
       LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
+      LEFT JOIN wishlist w ON w.id = c.wishlist_id
       WHERE c.share_id = $1
         AND c.public = TRUE
         AND (c.expiry_date IS NULL OR c.expiry_date >= NOW())
-      GROUP BY c.id, da.id
+      GROUP BY c.id, da.id, w.first_name, w.last_name, w.image
     `, [shareId]);
 
     if (result.rowCount === 0) {
@@ -226,7 +239,15 @@ app.get("/api/share/:shareId", async (req, res) => {
       });
     }
 
-    res.json({ collection: result.rows[0] });
+    const row = result.rows[0];
+    res.json({
+      collection: {
+        ...row.collection,
+        delivery_address: row.delivery_address,
+        products: row.products
+      },
+      wishlist: row.wishlist
+    });
 
   } catch (err) {
     console.error("Error fetching collection by share_id:", err);
