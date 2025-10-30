@@ -467,11 +467,12 @@ app.put("/api/collection/:collectionId", async (req, res) => {
 
     res.json({
       message: "Collection updated successfully",
-      collection: collectionResult.rows[0],
-      delivery_address: updatedAddress,
-      products: productsResult.rows
+      collection: {
+        ...collectionResult.rows[0],
+        delivery_address: updatedAddress,
+        products: productsResult.rows
+      }
     });
-
   } catch (err) {
     console.error("Error updating collection:", err);
     res.status(500).json({ error: "Internal server error" });
