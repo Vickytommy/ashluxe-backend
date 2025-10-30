@@ -411,12 +411,22 @@ app.put("/api/collection/:collectionId", async (req, res) => {
   try {
     // 1️⃣ Confirm collectionitem belongs to the wishlist
     const collectionCheck = await connection.query(
-      `SELECT id FROM collectionitem WHERE id = $1 AND wishlist_id = $2`,
+      `SELECT id, share_id FROM collectionitem WHERE id = $1 AND wishlist_id = $2`,
       [collectionId, wishlist_id]
     );
 
     if (collectionCheck.rowCount === 0) {
       return res.status(404).json({ error: "Collection item not found for the provided wishlist" });
+    }
+
+    // 2️⃣ Generate share_id if not present
+    let share_id = collectionCheck.rows[0].share_id;
+    if (!share_id) {
+      const randomId =
+        Math.random().toString(36).substring(2, 19) +
+        Math.random().toString(36).substring(2, 4);
+      share_id = `share_${randomId.toUpperCase()}`;
+      bodyFields.share_id = share_id; // 👈 add to the same update
     }
 
     // 2️⃣ Dynamically build UPDATE query for collectionitem
@@ -469,8 +479,8 @@ app.put("/api/collection/:collectionId", async (req, res) => {
       message: "Collection updated successfully",
       collection: {
         ...collectionResult.rows[0],
-        delivery_address: updatedAddress,
-        products: productsResult.rows
+        share_id,
+        delivery_address: updatedAddress
       }
     });
   } catch (err) {
