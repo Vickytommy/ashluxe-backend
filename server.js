@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 
 app.use(cors({
-  origin: ['https://ash-luxe.com', 'https://www.ash-luxe.com'], // allowed frontends
+  origin: ['https://ash-luxe.com', 'https://www.ash-luxe.com', "https://ashluxry.com", "https://www.ashluxry.com"], // allowed frontends
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
