@@ -411,6 +411,91 @@ app.delete("/api/collection/:collectionId/product/:productId", async (req, res) 
 });
 
 // EDIT COLLECTION
+// app.put("/api/collection/:collectionId", async (req, res) => {
+//   const { collectionId } = req.params;
+//   const { wishlist_id, delivery_address, ...bodyFields } = req.body;
+
+//   try {
+//     // 1️⃣ Confirm collectionitem belongs to the wishlist
+//     const collectionCheck = await connection.query(
+//       `SELECT id, share_id FROM collectionitem WHERE id = $1 AND wishlist_id = $2`,
+//       [collectionId, wishlist_id]
+//     );
+
+//     if (collectionCheck.rowCount === 0) {
+//       return res.status(404).json({ error: "Collection item not found for the provided wishlist" });
+//     }
+
+//     // 2️⃣ Generate share_id if not present
+//     let share_id = collectionCheck.rows[0].share_id;
+//     if (!share_id) {
+//       const randomId =
+//         Math.random().toString(36).substring(2, 19) +
+//         Math.random().toString(36).substring(2, 4);
+//       share_id = `share_${randomId.toUpperCase()}`;
+//       bodyFields.share_id = share_id; // 👈 add to the same update
+//     }
+
+//     // 2️⃣ Dynamically build UPDATE query for collectionitem
+//     const keys = Object.keys(bodyFields); // fields to update
+//     const values = Object.values(bodyFields);
+
+//     if (keys.length > 0) {
+//       const setQuery = keys.map((key, index) => `${key} = $${index + 1}`).join(", ");
+//       await connection.query(
+//         `UPDATE collectionitem
+//          SET ${setQuery}, updated_at = NOW()
+//          WHERE id = $${keys.length + 1}`,
+//         [...values, collectionId]
+//       );
+//     }
+
+//     // 3️⃣ Upsert delivery address if provided
+//     let updatedAddress = null;
+//     if (delivery_address) {
+//       const { house_number, apartment, country, postcode } = delivery_address;
+//       const addressResult = await connection.query(
+//         `INSERT INTO collectionitem_deliveryaddress
+//           (collectionitem_id, house_number, apartment, country, postcode)
+//          VALUES ($1, $2, $3, $4, $5)
+//          ON CONFLICT (collectionitem_id)
+//          DO UPDATE SET
+//            house_number = EXCLUDED.house_number,
+//            apartment = EXCLUDED.apartment,
+//            country = EXCLUDED.country,
+//            postcode = EXCLUDED.postcode
+//          RETURNING *`,
+//         [collectionId, house_number, apartment, country, postcode]
+//       );
+//       updatedAddress = addressResult.rows[0];
+//     }
+
+//     // 4️⃣ Fetch all products for this collectionitem
+//     const productsResult = await connection.query(
+//       `SELECT * FROM collectionitem_product WHERE collectionitem_id = $1`,
+//       [collectionId]
+//     );
+
+//     // 5️⃣ Fetch updated collectionitem
+//     const collectionResult = await connection.query(
+//       `SELECT * FROM collectionitem WHERE id = $1`,
+//       [collectionId]
+//     );
+
+//     res.json({
+//       message: "Collection updated successfully",
+//       collection: {
+//         ...collectionResult.rows[0],
+//         share_id,
+//         delivery_address: updatedAddress
+//       }
+//     });
+//   } catch (err) {
+//     console.error("Error updating collection:", err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+// EDIT COLLECTION
 app.put("/api/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
   const { wishlist_id, delivery_address, ...bodyFields } = req.body;
@@ -423,7 +508,9 @@ app.put("/api/collection/:collectionId", async (req, res) => {
     );
 
     if (collectionCheck.rowCount === 0) {
-      return res.status(404).json({ error: "Collection item not found for the provided wishlist" });
+      return res.status(404).json({
+        error: "Collection item not found for the provided wishlist",
+      });
     }
 
     // 2️⃣ Generate share_id if not present
@@ -436,8 +523,8 @@ app.put("/api/collection/:collectionId", async (req, res) => {
       bodyFields.share_id = share_id; // 👈 add to the same update
     }
 
-    // 2️⃣ Dynamically build UPDATE query for collectionitem
-    const keys = Object.keys(bodyFields); // fields to update
+    // 3️⃣ Dynamically build UPDATE query for collectionitem
+    const keys = Object.keys(bodyFields);
     const values = Object.values(bodyFields);
 
     if (keys.length > 0) {
@@ -450,31 +537,30 @@ app.put("/api/collection/:collectionId", async (req, res) => {
       );
     }
 
-    // 3️⃣ Upsert delivery address if provided
+    // 4️⃣ Upsert delivery address if provided
     let updatedAddress = null;
     if (delivery_address) {
-      const { house_number, apartment, country, postcode } = delivery_address;
+      const { apartment, country, postcode, city, state, address, phone } = delivery_address;
+
       const addressResult = await connection.query(
         `INSERT INTO collectionitem_deliveryaddress
-          (collectionitem_id, house_number, apartment, country, postcode)
-         VALUES ($1, $2, $3, $4, $5)
+          (collectionitem_id, apartment, country, postcode, city, state, address, phone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (collectionitem_id)
          DO UPDATE SET
-           house_number = EXCLUDED.house_number,
            apartment = EXCLUDED.apartment,
            country = EXCLUDED.country,
-           postcode = EXCLUDED.postcode
+           postcode = EXCLUDED.postcode,
+           city = EXCLUDED.city,
+           state = EXCLUDED.state,
+           address = EXCLUDED.address,
+           phone = EXCLUDED.phone
          RETURNING *`,
-        [collectionId, house_number, apartment, country, postcode]
+        [collectionId, apartment, country, postcode, city, state, address, phone]
       );
+
       updatedAddress = addressResult.rows[0];
     }
-
-    // 4️⃣ Fetch all products for this collectionitem
-    const productsResult = await connection.query(
-      `SELECT * FROM collectionitem_product WHERE collectionitem_id = $1`,
-      [collectionId]
-    );
 
     // 5️⃣ Fetch updated collectionitem
     const collectionResult = await connection.query(
@@ -487,8 +573,8 @@ app.put("/api/collection/:collectionId", async (req, res) => {
       collection: {
         ...collectionResult.rows[0],
         share_id,
-        delivery_address: updatedAddress
-      }
+        delivery_address: updatedAddress,
+      },
     });
   } catch (err) {
     console.error("Error updating collection:", err);
