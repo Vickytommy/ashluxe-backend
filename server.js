@@ -5,8 +5,12 @@
 // const https = require('https');
 
 const {Client}=require('pg');
+const {S3Client, PutObjectCommand, GetObjectCommand} = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const express = require('express')
 const cors = require('cors');
+const multer = require('multer');
+const sharp = require('sharp');
 
 const dotenv = require('dotenv').config();
 const errorHandler = require("./middleware/errorHandler");
@@ -27,6 +31,17 @@ app.use(cors({
   credentials: true
 }));
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+const s3 = new S3Client({
+  // credentials: {
+  //   accessKeyId: process.env.ACCESS_KEY,
+  //   secretAccessKey: process.env.SECRET_ACCESS_KEY
+  // },
+  region: process.env.BUCKET_REGION
+})
+
 const shopify_endpoint = "https://www.ashluxe.myshopify.com";
 const port = process.env.PORT || 5000;
 
@@ -44,9 +59,87 @@ connection.connect()
   .then(() => console.log("Connected to PostgreSQL"))
   .catch(err => console.error("Connection error:", err));
 
+async function getImageUrl(imageName) {
+  const getObjectParams = {
+    Bucket: process.env.BUCKET_NAME,
+    Key: imageName
+  };
+  const getCommand = new GetObjectCommand(getObjectParams);
+  const url = await getSignedUrl(s3, getCommand, { expiresIn: 3600 });
+  return url;
+}
 
 app.get('/', (req, res) => {
-    res.send('ASHLUXE WISHLIST API is running....');
+  res.send('ASHLUXE WISHLIST API is running....');
+});
+
+// UPLOAD PROFILE IMG
+app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
+  const { wishlistId } = req.params;
+
+  try {
+    // 1️⃣ Validate required fields
+    if (!req.file) {
+      return res.status(400).json({ error: "profileImg file is required" });
+    }
+
+    // 2️⃣ Check if wishlist exists
+    const wishlistResult = await connection.query(
+      "SELECT * FROM wishlist WHERE id = $1",
+      [wishlistId]
+    );
+
+    if (wishlistResult.rowCount === 0) {
+      return res.status(404).json({ error: "Wishlist does not exist" });
+    }
+
+    const firstName = wishlistResult.rows[0].first_name.toLowerCase(); 
+    if (!firstName) {
+      return res.status(400).json({ error: "first_name is required" });
+    }
+
+    // 3️⃣ Resize image
+    const buffer = await sharp(req.file.buffer)
+      .resize({ height: 300, width: 300, fit: "contain" })
+      .toBuffer();
+
+    // Prepare S3 upload key
+    const key = `${firstName}-${wishlistId}`;
+
+    // 4️⃣ S3 Upload
+    const params = {
+      Bucket: process.env.BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: req.file.mimetype
+    };
+
+    const command = new PutObjectCommand(params);
+
+    await s3.send(command);
+
+    // 5️⃣ Update wishlist image field with S3 key
+    const updateResult = await connection.query(
+      `UPDATE wishlist
+       SET image = $1
+       WHERE id = $2
+       RETURNING *`,
+      [key, wishlistId]
+    );
+
+    result = updateResult.rows[0];
+    result.image = await getImageUrl(updateResult.rows[0].image);
+
+    // 6️⃣ Respond success
+    return res.status(200).json({
+      message: "Image uploaded successfully",
+      wishlist: result
+    });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ADD COLLECTION
@@ -91,7 +184,10 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
 
     res.status(201).json({
       message: "Collection added",
-      wishlist: wishlistResult.rows[0],
+      wishlist: {
+        ...wishlistResult.rows[0],
+        image: await getImageUrl(wishlistResult.rows[0].image)
+      },
       collection: insertResult.rows[0]
     });
 
@@ -127,8 +223,6 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
     // // 3️⃣ Attach collections to the wishlist object
     // wishlist.collections = collectionsResult.rows;
 
-
-
     const collections = collectionsResult.rows;
 
     // 3️⃣ For each collection, get its products
@@ -144,6 +238,7 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
 
     // 5️⃣ Attach collections to wishlist
     wishlist.collections = collections;
+    wishlist.image = await getImageUrl(wishlist.image);
 
     res.status(200).json({ wishlist });
 
@@ -253,7 +348,10 @@ app.get("/api/share/:shareId", async (req, res) => {
         delivery_address: row.delivery_address,
         products: row.products
       },
-      wishlist: row.wishlist
+      wishlist: {
+        ...row.wishlist,
+        image: await getImageUrl(row.wishlist.image)
+      }
     });
 
   } catch (err) {
