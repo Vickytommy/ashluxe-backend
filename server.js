@@ -249,40 +249,105 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
 });
 
 // GET COLLECTION BY ID
+// app.get("/api/collection/:collectionId", async (req, res) => {
+//   const { collectionId } = req.params;
+
+//   try {
+//     const result = await connection.query(`
+//       SELECT 
+//           c.*,
+//           to_jsonb(da) AS delivery_address,
+//           COALESCE(
+//             json_agg(DISTINCT jsonb_build_object(
+//               'id', p.id,
+//               'product_id', p.product_id,
+//               'product_handle', p.product_handle,
+//               'title', p.title,
+//               'description', p.description,
+//               'price', p.price,
+//               'image_url', p.image_url,
+//               'gifted', p.gifted,
+//               'quantity', p.quantity,
+//               'variant_id', p.variant_id
+//             )) FILTER (WHERE p.id IS NOT NULL), '[]'
+//           ) AS products
+//       FROM collectionitem c
+//       LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
+//       LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
+//       WHERE c.id = $1
+//       GROUP BY c.id, da.id
+//     `, [collectionId]);
+
+//     if (result.rowCount === 0) {
+//       return res.status(404).json({ error: "Collection item not found" });
+//     }
+
+//     res.json({ collection: result.rows[0] });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
 app.get("/api/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
 
   try {
     const result = await connection.query(`
       SELECT 
-          c.*,
-          to_jsonb(da) AS delivery_address,
-          COALESCE(
-            json_agg(DISTINCT jsonb_build_object(
-              'id', p.id,
-              'product_id', p.product_id,
-              'product_handle', p.product_handle,
-              'title', p.title,
-              'description', p.description,
-              'price', p.price,
-              'image_url', p.image_url,
-              'gifted', p.gifted,
-              'quantity', p.quantity,
-              'variant_id', p.variant_id
-            )) FILTER (WHERE p.id IS NOT NULL), '[]'
-          ) AS products
+        c.*,
+
+        -- DELIVERY ADDRESS stays nested inside collection
+        to_jsonb(da) AS delivery_address,
+
+        -- PRODUCTS stay nested inside collection
+        COALESCE(
+          json_agg(DISTINCT jsonb_build_object(
+            'id', p.id,
+            'product_id', p.product_id,
+            'product_handle', p.product_handle,
+            'title', p.title,
+            'description', p.description,
+            'price', p.price,
+            'image_url', p.image_url,
+            'gifted', p.gifted,
+            'quantity', p.quantity,
+            'variant_id', p.variant_id
+          )) FILTER (WHERE p.id IS NOT NULL), '[]'
+        ) AS products,
+
+        -- WISHLIST (put outside collection later)
+        to_jsonb(w) AS wishlist
+
       FROM collectionitem c
-      LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
-      LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
+      LEFT JOIN collectionitem_deliveryaddress da 
+        ON da.collectionitem_id = c.id
+      
+      LEFT JOIN collectionitem_product p 
+        ON p.collectionitem_id = c.id
+
+      LEFT JOIN wishlist w
+        ON w.id = c.wishlist_id
+
       WHERE c.id = $1
-      GROUP BY c.id, da.id
+      GROUP BY c.id, da.id, w.id
     `, [collectionId]);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Collection item not found" });
     }
 
-    res.json({ collection: result.rows[0] });
+    const row = result.rows[0];
+
+    // Extract wishlist separately
+    const wishlist = row.wishlist;
+    delete row.wishlist; // remove it from the collection object
+
+    res.json({
+      collection: row,
+      wishlist: wishlist || null
+    });
 
   } catch (err) {
     console.error(err);
