@@ -862,6 +862,7 @@ app.get("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
 
     // 5️⃣ Attach collections to wishlist
     wishlist.collections = collections;
+    wishlist.image = getImageUrl(wishlist.image);
 
     res.status(200).json({ wishlist });
 
