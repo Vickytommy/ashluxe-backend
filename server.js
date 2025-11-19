@@ -342,12 +342,13 @@ app.get("/api/collection/:collectionId", async (req, res) => {
     const row = result.rows[0];
 
     // Extract wishlist separately
-    const wishlist = row.wishlist;
+    let wishlist = row.wishlist;
+    wishlist.image = getImageUrl(wishlist.image);
     delete row.wishlist; // remove it from the collection object
 
     res.json({
       collection: row,
-      wishlist: wishlist || null
+      wishlist: wishlist || []
     });
 
   } catch (err) {
@@ -743,7 +744,8 @@ app.put("/api/collection/:collectionId", async (req, res) => {
       [wishlist_id]
     );
 
-    const wishlist = wishlistResult.rowCount > 0 ? wishlistResult.rows[0] : null;
+    let wishlist = wishlistResult.rowCount > 0 ? wishlistResult.rows[0] : null;
+    wishlist.image = getImageUrl(wishlist.image);
 
     // 7️⃣ Final response with wishlist included
     res.json({
