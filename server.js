@@ -60,7 +60,7 @@ connection.connect()
   .catch(err => console.error("Connection error:", err));
 
 async function getImageUrl(imageName) {
-  if (imageName) return imageName
+  if (imageName === null) return null
   const getObjectParams = {
     Bucket: process.env.BUCKET_NAME,
     Key: imageName
