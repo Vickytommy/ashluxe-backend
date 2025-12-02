@@ -2039,7 +2039,7 @@ app.post("/api/ashluxury/wishlist/:wishlistId/upload", upload.single('profileImg
 
     // 5️⃣ Update wishlist image field with S3 key
     const updateResult = await connection.query(
-      `UPDATE wishlist
+      `UPDATE ashluxury_wishlist
        SET image = $1
        WHERE id = $2
        RETURNING *`,
@@ -2240,7 +2240,7 @@ app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
         -- WISHLIST (put outside collection later)
         to_jsonb(w) AS wishlist
 
-      FROM collectionitem c
+      FROM ashluxury_collectionitem c
       LEFT JOIN ashluxury_collectionitem_deliveryaddress da 
         ON da.collectionitem_id = c.id
       
@@ -2311,7 +2311,7 @@ app.get("/api/ashluxury/share/:shareId", async (req, res) => {
             'image', w.image
           ) AS wishlist
 
-      FROM collectionitem c
+      FROM ashluxury_collectionitem c
       LEFT JOIN ashluxury_collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
       LEFT JOIN ashluxury_collectionitem_product p ON p.collectionitem_id = c.id
       LEFT JOIN ashluxury_wishlist w ON w.id = c.wishlist_id
