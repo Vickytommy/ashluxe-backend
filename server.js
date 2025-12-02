@@ -337,7 +337,7 @@
 
 //     // Extract wishlist separately
 //     let wishlist = row.wishlist;
-//     wishlist.image = getImageUrl(wishlist.image);
+//     wishlist.image = await getImageUrl(wishlist.image);
 //     delete row.wishlist; // remove it from the collection object
 
 //     res.json({
@@ -739,7 +739,7 @@
 //     );
 
 //     let wishlist = wishlistResult.rowCount > 0 ? wishlistResult.rows[0] : null;
-//     wishlist.image = getImageUrl(wishlist.image);
+//     wishlist.image = await getImageUrl(wishlist.image);
 
 //     // 7️⃣ Final response with wishlist included
 //     res.json({
@@ -856,7 +856,7 @@
 
 //     // 5️⃣ Attach collections to wishlist
 //     wishlist.collections = collections;
-//     wishlist.image = getImageUrl(wishlist.image);
+//     wishlist.image = await getImageUrl(wishlist.image);
 
 //     res.status(200).json({ wishlist });
 
@@ -1566,7 +1566,7 @@ app.get("/api/collection/:collectionId", async (req, res) => {
 
     // Extract wishlist separately
     let wishlist = row.wishlist;
-    wishlist.image = getImageUrl(wishlist.image);
+    wishlist.image = await getImageUrl(wishlist.image);
     delete row.wishlist; // remove it from the collection object
 
     res.json({
@@ -1968,7 +1968,7 @@ app.put("/api/collection/:collectionId", async (req, res) => {
     );
 
     let wishlist = wishlistResult.rowCount > 0 ? wishlistResult.rows[0] : null;
-    wishlist.image = getImageUrl(wishlist.image);
+    wishlist.image = await getImageUrl(wishlist.image);
 
     // 7️⃣ Final response with wishlist included
     res.json({
@@ -2262,7 +2262,7 @@ app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
 
     // Extract wishlist separately
     let wishlist = row.wishlist;
-    wishlist.image = getImageUrl(wishlist.image);
+    wishlist.image = await getImageUrl(wishlist.image);
     delete row.wishlist; // remove it from the collection object
 
     res.json({
@@ -2663,7 +2663,7 @@ app.put("/api/ashluxury/collection/:collectionId", async (req, res) => {
     );
 
     let wishlist = wishlistResult.rowCount > 0 ? wishlistResult.rows[0] : null;
-    wishlist.image = getImageUrl(wishlist.image);
+    wishlist.image = await getImageUrl(wishlist.image);
 
     // 7️⃣ Final response with wishlist included
     res.json({
