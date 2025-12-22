@@ -1369,7 +1369,17 @@ app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async 
 // ADD COLLECTION
 app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
   const { wishlistId } = req.params;
-  const { title, first_name, last_name, image } = req.body;
+  const { title, first_name, last_name, image,
+
+    // optional product fields
+    product_id,
+    product_handle,
+    description,
+    price,
+    image_url,
+    gifted = 0,
+    quantity = 1,
+    variant_id } = req.body;
 
   if (!title) {
     return res.status(400).json({ error: "Collection title is required" });
@@ -1406,13 +1416,45 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
       [title, wishlistId]
     );
 
+    const collection = insertResult.rows[0];
+
+    let product = null;
+
+    // 4️⃣ OPTIONAL: Add product if product_id exists
+    if (product_id) {
+      const productInsert = await connection.query(
+        `INSERT INTO collectionitem_product
+          (collectionitem_id, product_id, product_handle, title, description,
+           price, image_url, gifted, quantity, variant_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         RETURNING *`,
+        [
+          collection.id,
+          product_id,
+          product_handle,
+          title,
+          description,
+          price,
+          image_url,
+          gifted,
+          quantity,
+          variant_id
+        ]
+      );
+
+      product = productInsert.rows[0];
+    }
+
     res.status(201).json({
-      message: "Collection added",
+      message: product
+        ? "Collection created and product added"
+        : "Collection created",
       wishlist: {
         ...wishlistResult.rows[0],
         image: await getImageUrl(wishlistResult.rows[0].image)
       },
-      collection: insertResult.rows[0]
+      collection: insertResult.rows[0],
+      products: product ? [product] : []
     });
 
   } catch (error) {
@@ -2140,7 +2182,6 @@ app.post("/api/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
 
       product = productInsert.rows[0];
     }
-
 
     res.status(201).json({
       message: product
