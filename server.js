@@ -1283,14 +1283,18 @@ connection.connect()
   .catch(err => console.error("Connection error:", err));
 
 async function getImageUrl(imageName) {
-  if (imageName === null) return null
-  const getObjectParams = {
-    Bucket: process.env.BUCKET_NAME,
-    Key: imageName
-  };
-  const getCommand = new GetObjectCommand(getObjectParams);
-  const url = await getSignedUrl(s3, getCommand, { expiresIn: 3600 });
+  if (imageName === null) return null;
+
+  // If you want to return a public URL instead of a signed URL, uncomment below:
+  const url = `https://${process.env.BUCKET_NAME}.s3.${process.env.BUCKET_REGION}.amazonaws.com/${imageName}`;
   return url;
+  // const getObjectParams = {
+  //   Bucket: process.env.BUCKET_NAME,
+  //   Key: imageName
+  // };
+  // const getCommand = new GetObjectCommand(getObjectParams);
+  // const url = await getSignedUrl(s3, getCommand, { expiresIn: 3600 });
+  // return url;
 }
 
 app.get('/', (req, res) => {
