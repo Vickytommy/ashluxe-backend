@@ -278,7 +278,7 @@ async function getWishlistDataFromDB() {
     
     return formattedOrders;
   } catch (error) {
-    return null;
+    return [];
   }
 }
 
