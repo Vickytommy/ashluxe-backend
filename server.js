@@ -292,8 +292,6 @@ async function getWishlistDataFromDB(store) {
 
     const result = await response.json();
 
-    console.log('THE RESULT - ,', result)
-
     if (!result.data || !result.data.nodes) {
       console.error("Shopify GraphQL error:", result.errors);
       return res.status(400).json({ error: "Failed to fetch Shopify orders", details: result.errors });
@@ -326,8 +324,6 @@ async function getWishlistDataFromDB(store) {
         deliveryMethod: ""  // Optional
       };
     });
-
-    console.log('THE FORMATED - ', formattedOrders)
     
     return formattedOrders;
   } catch (error) {
