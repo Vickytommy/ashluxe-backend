@@ -94,10 +94,14 @@ app.get('/', async (req, res) => {
   let data = await getWishlistDataFromDB(); // your DB function
 
   if (search && search.trim() !== "") {
+    const term = search.toLowerCase();
+
     data = data.filter(item =>
-      item.customerName.toLowerCase().includes(search.toLowerCase())
+      item.customerName.toLowerCase().includes(term) ||
+      item.wishlistShareId.toLowerCase().includes(term)
     );
   }
+
   
   // Filter by payment status
   if (paymentStatus && paymentStatus !== "") {
@@ -127,9 +131,13 @@ app.get('/ashluxury', async (req, res) => {
 
   let data = await getWishlistDataFromDB('ashluxury'); // your DB function
 
+  
   if (search && search.trim() !== "") {
+    const term = search.toLowerCase();
+
     data = data.filter(item =>
-      item.customerName.toLowerCase().includes(search.toLowerCase())
+      item.customerName.toLowerCase().includes(term) ||
+      item.wishlistShareId.toLowerCase().includes(term)
     );
   }
   
