@@ -149,7 +149,7 @@ app.post('/shopify_order_create', async (req, res) => {
   // } catch (error) {
     // res.status(500).json({ error: "Failed to save order" });
     // res.status(200).send('Ok');
-  }
+  // }
 });
 
 app.get('/shopify_orders', async (req, res) => {
