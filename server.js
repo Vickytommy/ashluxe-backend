@@ -156,7 +156,7 @@ async function getWishlistDataFromDB() {
     const wishlsitOrderResults = await connection.query(
       "SELECT order_id FROM wishlist_orders"
     );
-    const orderIds = wishlsitOrderResults.rows.map(row => row.order_id);
+    const orderIds = wishlsitOrderResults.rows.map(row => parseInt(row.order_id));
 
     console.log('THE IDS - ', wishlsitOrderResults, orderIds)
 
