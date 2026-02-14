@@ -11,7 +11,7 @@ import sharp from "sharp";
 import bootstrap from "./config/bootstrap.js";
 import dotenv from "dotenv";
 import { getSecrets } from './config/secrets.js';
-import errorHandler from "./middleware/errorHandler.js";
+// import errorHandler from "./middleware/errorHandler.js";
 
 // load env vars
 dotenv.config();
@@ -168,6 +168,7 @@ async function getWishlistDataFromDB() {
     );
     const orderIds = wishlsitOrderResults.rows.map(row => row.order_id);
 
+    const secrets = getSecrets();
     const endpoint = secrets.SHOPIFY_STORE_URL;
     const ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
 
