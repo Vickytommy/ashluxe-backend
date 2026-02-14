@@ -15,6 +15,7 @@ export async function loadSecrets() {
         SecretId: "ashcorp-secret",
       })
     );
+  console.log('got here - ', response)
 
     cachedSecrets = JSON.parse(response.SecretString);
     console.log("✅ AWS Secrets loaded", cachedSecrets);
