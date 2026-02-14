@@ -122,15 +122,16 @@ app.get('/', async (req, res) => {
 });
 
 app.post('/shopify_order_create', async (req, res) => {
-  res.status(200).send('Ok');
+  // res.status(200).send('Ok');
 
-   try {
+  //  try {
     const order = req.body;
     const orderId = order?.id;
     const wishlist_share_id = order?.note_attributes?.wishlist_share_id;
 
     if (!orderId || !wishlist_share_id) {
-      res.status(200).send('Ok');
+      return;
+      // res.status(200).send('Ok');
     }
 
     console.log('WISHLIST ORDER DETAILS - ', orderId, wishlist_share_id);
@@ -143,11 +144,11 @@ app.post('/shopify_order_create', async (req, res) => {
       [orderId, wishlist_share_id]
     );
 
-    res.status(200).json({ message: "Order saved successfully" });
+    // res.status(200).json({ message: "Order saved successfully" });
 
-  } catch (error) {
+  // } catch (error) {
     // res.status(500).json({ error: "Failed to save order" });
-    res.status(200).send('Ok');
+    // res.status(200).send('Ok');
   }
 });
 
