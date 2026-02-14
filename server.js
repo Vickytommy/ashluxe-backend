@@ -122,23 +122,15 @@ app.get('/', async (req, res) => {
 });
 
 app.post('/shopify_order_create', async (req, res) => {
-  // res.status(200).send('Ok');
-
-  //  try {
     const order = req.body;
     const orderId = order?.id;
     const wishlistShareId = order?.note_attributes?.find(
       attr => attr.name === "wishlistShareId"
     )?.value;
 
-    console.log('THE ORDER IS NOW - ', order)
-
     if (!orderId || !wishlistShareId) {
       return;
-      // res.status(200).send('Ok');
     }
-
-    console.log('WISHLIST ORDER DETAILS - ', orderId, wishlistShareId);
 
     // Insert into DB
     await connection.query(
@@ -147,13 +139,6 @@ app.post('/shopify_order_create', async (req, res) => {
        ON CONFLICT (order_id) DO NOTHING`,
       [orderId, wishlistShareId]
     );
-
-    // res.status(200).json({ message: "Order saved successfully" });
-
-  // } catch (error) {
-    // res.status(500).json({ error: "Failed to save order" });
-    // res.status(200).send('Ok');
-  // }
 });
 
 app.get('/shopify_orders', async (req, res) => {
@@ -172,6 +157,8 @@ async function getWishlistDataFromDB() {
       "SELECT order_id FROM wishlist_orders"
     );
     const orderIds = wishlsitOrderResults.rows.map(row => row.order_id);
+
+    console.log('THE IDS - ', wishlsitOrderResults, orderIds)
 
     const secrets = getSecrets();
     const endpoint = secrets.SHOPIFY_STORE_URL;
@@ -248,6 +235,8 @@ async function getWishlistDataFromDB() {
 
     const result = await response.json();
 
+    console.log('THE RESULT - ,', result)
+
     if (!result.data || !result.data.nodes) {
       console.error("Shopify GraphQL error:", result.errors);
       return res.status(400).json({ error: "Failed to fetch Shopify orders", details: result.errors });
@@ -280,6 +269,8 @@ async function getWishlistDataFromDB() {
         deliveryMethod: ""  // Optional
       };
     });
+
+    console.log('THE FORMATED - ', formattedOrders)
     
     return formattedOrders;
   } catch (error) {
