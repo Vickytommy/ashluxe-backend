@@ -1,24 +1,5 @@
 
 
-// import fs from 'fs';
-// import https from 'https';
-
-// const fs = require('fs');
-// const https = require('https');
-
-// const {Client}=require('pg');
-// const {S3Client, PutObjectCommand, GetObjectCommand} = require('@aws-sdk/client-s3');
-// const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-// const express = require('express')
-// const path = require('path');
-// const cors = require('cors');
-// const multer = require('multer');
-// const sharp = require('sharp');
-// const bootstrap = require('./config/bootstrap.js');
-
-// const dotenv = require('dotenv').config();
-// const errorHandler = require("./middleware/errorHandler");
-
 import { Client } from "pg";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
