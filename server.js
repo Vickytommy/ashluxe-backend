@@ -115,6 +115,41 @@ app.get('/', async (req, res) => {
 
   res.render('dashboard', {
     data,
+    currentRoute: req.path,
+    search,
+    paymentStatus,
+    fulfillmentStatus
+  });
+});
+
+app.get('/ashluxury', async (req, res) => {
+  const { search, paymentStatus, fulfillmentStatus } = req.query;
+
+  let data = await getWishlistDataFromDB('ashluxury'); // your DB function
+
+  if (search && search.trim() !== "") {
+    data = data.filter(item =>
+      item.customerName.toLowerCase().includes(search.toLowerCase())
+    );
+  }
+  
+  // Filter by payment status
+  if (paymentStatus && paymentStatus !== "") {
+    data = data.filter(item =>
+      item.paymentStatus.toLowerCase() === paymentStatus.toLowerCase()
+    );
+  }
+
+  // Filter by fulfillment status
+  if (fulfillmentStatus && fulfillmentStatus !== "") {
+    data = data.filter(item =>
+      item.fulfillmentStatus.toLowerCase() === fulfillmentStatus.toLowerCase()
+    );
+  }
+
+  res.render('dashboard', {
+    data,
+    currentRoute: req.path,
     search,
     paymentStatus,
     fulfillmentStatus
@@ -141,6 +176,26 @@ app.post('/shopify_order_create', async (req, res) => {
     );
 });
 
+app.post('/shopify_order_create_ashluxury', async (req, res) => {
+    const order = req.body;
+    const orderId = order?.id;
+    const wishlistShareId = order?.note_attributes?.find(
+      attr => attr.name === "wishlistShareId"
+    )?.value;
+
+    if (!orderId || !wishlistShareId) {
+      return;
+    }
+
+    // Insert into DB
+    await connection.query(
+      `INSERT INTO ashluxury_wishlist_orders (order_id, wishlist_share_id)
+       VALUES ($1, $2)
+       ON CONFLICT (order_id) DO NOTHING`,
+      [orderId, wishlistShareId]
+    );
+});
+
 app.get('/shopify_orders', async (req, res) => {
   let data = await getWishlistDataFromDB();
   if (data === null) {
@@ -150,17 +205,21 @@ app.get('/shopify_orders', async (req, res) => {
   }
 });
 
-
-async function getWishlistDataFromDB() {
+async function getWishlistDataFromDB(store) {
   try {
     const wishlsitOrderResults = await connection.query(
       "SELECT order_id FROM wishlist_orders"
     );
-    const orderIds = wishlsitOrderResults.rows.map(row => parseInt(row.order_id));
+    const orderIds = wishlsitOrderResults.rows.map(row => (row.order_id));
 
     const secrets = getSecrets();
-    const endpoint = secrets.SHOPIFY_STORE_URL;
-    const ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
+    let endpoint = secrets.SHOPIFY_STORE_URL;
+    let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
+
+    if (store === 'ashluxury') {
+      endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
+      ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
+    }
 
     // const orderIds = [5858563227699, 5858632302643, 5858633285683];
     const gids = orderIds.map(id => `gid://shopify/Order/${id}`);

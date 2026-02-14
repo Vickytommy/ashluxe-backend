@@ -30,15 +30,25 @@
         line-height: 28px;
         color: #061C55;
     }
-    .nav .nav-bio {
+    /* .nav .nav-bio {
         display: flex;
         gap: 8px;
-    }
-    .nav .nav-bio p {
+    } */
+    .nav .nav-bio {
+        border: 0;
         font-weight: 500;
-        font-size: 18px;
+        font-size: 16px;
         line-height: 28px;
         color: #061C55;
+        outline: none;
+        box-shadow: none;
+        cursor: pointer;
+    }
+    .nav .nav-bio:focus,
+    .nav .nav-bio:active {
+        border: 0;
+        outline: none;
+        box-shadow: none;
     }
 
     .main {
@@ -224,9 +234,11 @@
 <body>
     <div class="nav">
         <p class="nav-title">Wishlist Orders</p>
-        <div class="nav-bio">
-            <p>Ashluxe</p>
-        </div>
+        <select class="nav-bio" id="storeSelect" onchange="redirectStore(this.value)">
+            <option value="/" <%= currentRoute === "/" ? "selected" : "" %>>Ashluxe</option>
+            <option value="/ashluxury" <%= currentRoute === "/ashluxury" ? "selected" : "" %>>Ashluxury</option>
+        </select>
+
     </div>
 
     <div class="main">
@@ -327,7 +339,13 @@
     </div>
 
 
-    <script>
+    <script>     
+        function redirectStore(value) {
+            if (value) {
+                window.location.href = value;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const dashboard = document.querySelector('.dashboard');
             const table = document.querySelector('.table-dashboard');
