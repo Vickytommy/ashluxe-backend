@@ -127,21 +127,25 @@ app.post('/shopify_order_create', async (req, res) => {
   //  try {
     const order = req.body;
     const orderId = order?.id;
-    const wishlist_share_id = order?.note_attributes?.wishlist_share_id;
+    const wishlistShareId = order?.note_attributes?.find(
+      attr => attr.name === "wishlistShareId"
+    )?.value;
 
-    if (!orderId || !wishlist_share_id) {
+    console.log('THE ORDER IS NOW - ', order)
+
+    if (!orderId || !wishlistShareId) {
       return;
       // res.status(200).send('Ok');
     }
 
-    console.log('WISHLIST ORDER DETAILS - ', orderId, wishlist_share_id);
+    console.log('WISHLIST ORDER DETAILS - ', orderId, wishlistShareId);
 
     // Insert into DB
     await connection.query(
       `INSERT INTO wishlist_orders (order_id, wishlist_share_id)
        VALUES ($1, $2)
        ON CONFLICT (order_id) DO NOTHING`,
-      [orderId, wishlist_share_id]
+      [orderId, wishlistShareId]
     );
 
     // res.status(200).json({ message: "Order saved successfully" });
@@ -254,7 +258,7 @@ async function getWishlistDataFromDB() {
     // Map Shopify response into your dashboard format
     const formattedOrders = orders.map(order => {
       // Get wishlist_share_id from customAttributes
-      const wishlistAttr = order.customAttributes?.find(attr => attr.key === "wishlist_share_id")?.value || "";
+      const wishlistAttr = order.customAttributes?.find(attr => attr.key === "wishlistShareId")?.value || "";
 
       // Count line items
       const itemsCount = order.lineItems?.edges?.reduce(
