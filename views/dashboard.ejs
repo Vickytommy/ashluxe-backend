@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ashluxe Wishlist Dashboard</title>
+  <style>
+    body { 
+        font-family: "Helvetica Neue"; 
+        padding: 0; 
+        background: #F9FAFB;
+    }
+    * {
+        margin: 0;
+    }
+    input { padding: 8px; width: 300px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+
+    .nav {
+        max-width: 1440px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #F3F4F6;
+        padding: 18px 40px;
+        background: #FFFFFF;
+    }
+    .nav .nav-title {
+        font-weight: 500;
+        font-size: 18px;
+        line-height: 28px;
+        color: #061C55;
+    }
+    .nav .nav-bio {
+        display: flex;
+        gap: 8px;
+    }
+    .nav .nav-bio p {
+        font-weight: 500;
+        font-size: 18px;
+        line-height: 28px;
+        color: #061C55;
+    }
+
+    .main {
+        background: #FFFFFF;
+        max-width: 1440px;
+        margin: 24px auto 0;
+        padding: 20px 40px;
+    }
+    .table-wrapper {
+        overflow-x: auto;
+        max-width: 100%;
+        background: white;
+        scrollbar-width: thin;
+        margin-bottom: 12px;
+    }
+
+    /* Table layout */
+    .order-table {
+        border-collapse: collapse;
+        min-width: 1200px; /* force horizontal scroll */
+        color: #374151;
+    }
+
+    .order-table th {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+    }
+    .order-table td {
+        font-size: 14px;
+        font-weight: 400;
+    }
+    .order-table th,
+    .order-table td {
+        padding: 16px;
+        white-space: nowrap;
+    }
+    .order-table th:first-child,
+    .order-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #F3F4F6;
+        padding: 16px 20px;
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    }
+
+    /* Optional: sticky header too */
+    .order-table thead th:first-child {
+        position: sticky;
+        top: 0;
+        background: #F3F4F6;
+        padding: 16px 20px;
+        z-index: 3;
+    }
+
+    .order-table td.payment span,
+    .order-table td.fulfillment span {
+        font-size: 12px !important;
+        border-radius: 16px;
+        padding: 2px 8px;
+        background: #F9FAFB;
+    }
+    .order-table td.payment span::before,
+    .order-table td.fulfillment span::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        background: #374151;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 4px;
+    }
+    
+    /* Success */
+    .order-table td.payment.success span,
+    .order-table td.fulfillment.success span {
+        background: #F0FDF4;
+        color: #15803D;
+    }
+    .order-table td.payment.success span::before,
+    .order-table td.fulfillment.success span::before {
+        background-color: #15803D;
+    }
+    
+    /* Pending */
+    .order-table td.payment.pending span,
+    .order-table td.fulfillment.pending span {
+        background: #FFFBEB;
+        color: #B45309;
+    }
+    .order-table td.payment.pending span::before,
+    .order-table td.fulfillment.pending span::before {
+        background-color: #B45309;
+    }
+
+    .main .filter {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .main .filter form {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .main .filter input {
+        border: 1px solid #D1D5DB;
+        border-radius: 6px;
+        padding: 12px;
+        font-size: 14px;
+        color: #9CA3AF;
+        margin: 0;
+    }
+    .main .filtering-system p {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .main .filter select {
+        border: 1px solid #D1D5DB;
+        border-radius: 6px;
+        padding: 12px;
+        font-size: 14px;
+        color: #9CA3AF;
+        margin: 0;
+    }
+
+    .main .table-footer {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .main .dashboard {
+        display: flex;
+        gap: 20px;
+    }
+    .main .dashboard .card {
+        padding: 16px 20px;
+        border: 1px solid #EFE6F4;
+        color: #6B7280;
+        border-radius: 16px;
+        width: 100%;
+    }
+    .main .dashboard .card .c-header {
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+    .main .dashboard .card .c-value {
+        font-size: 28px;
+        font-weight: 700;
+    }
+
+    .main .tab {
+        width: fit-content;
+        display: flex;
+        justify-content: space-between;
+        gap: 30px;
+        margin: auto;
+        margin-bottom: 20px;
+    }
+    .main .tab button {
+        font-size: 14px;
+        padding: 10px;
+        color: #6B7280;
+        background: #FFFFFF;
+        border: 0;
+        border-bottom: 2px solid #FFFFFF;
+        cursor: pointer;
+    }
+    .main .tab button.active {
+        border-bottom: 2px solid #323339;
+    }
+
+    .main .hidden {
+        display: none !important;
+    }
+
+  </style>
+</head>
+<body>
+    <div class="nav">
+        <p class="nav-title">Wishlist Orders</p>
+        <div class="nav-bio">
+            <p>Ashluxe</p>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="tab">
+            <!-- <button class="tab-btn" data-name="dashboard">Dashboard</button> -->
+            <button class="tab-btn active" data-name="table">Wishlist Table</button>
+        </div>
+
+        <div class="dashboard hidden">
+            <div class="card">
+                <p class="c-header">Total Wishlist Users</p>
+                <p class="c-value">2,130</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Unique Wishlist Users</p>
+                <p class="c-value">2,130</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist Adoption Rate</p>
+                <p class="c-value">40%</p>
+            </div>
+        </div>
+
+        <div class="table-dashboard">
+            <div class="filter">
+                <form id="filterForm" method="GET" action="/">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        placeholder="Search by customer name"
+                        value="<%= search || '' %>"
+                    />
+                    <!-- <button type="submit">Filter</button> -->
+
+                    <div class="filtering-system">
+                        <p>Filter by</p>
+                        <select name="paymentStatus" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">Payment Status</option>
+                            <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+                            <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                        </select>
+                        <select name="fulfillmentStatus" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">Fulfillment Status</option>
+                            <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
+                            <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Order ID</th>
+                            <th>Wishlist Share ID</th>
+                            <th>Date Created</th>
+                            <th>Customer Name</th>
+                            <th>Channel</th>
+                            <th>Amount</th>
+                            <th>Payment Status</th>
+                            <th>Fulfillment Status</th>
+                            <th>Items</th>
+                            <th>Delivery Status</th>
+                            <th>Delivery method</th>
+                        </tr>
+                    </thead>
+                    
+                    <tbody>
+                        <% data.forEach((item, index)=> { %>
+                        <tr>
+                            <td><%= index+1 %></td>
+                            <td><%= item.orderId %></td>
+                            <td><%= item.wishlistShareId %></td>
+                            <td><%= item.dateCreated %></td>
+                            <td><%= item.customerName %></td>
+                            <td><%= item.channel %></td>
+                            <td><%= item.amount %></td>
+                            <td class="payment <%= item.paymentStatus %>"><span><%= item.paymentStatus %></span></td>
+                            <td class="fulfillment <%= item.paymentStatus %>"><span><%= item.fulfillmentStatus %></span></td>
+                            <td><%= item.items %></td>
+                            <td><%= item.deliveryStatus %></td>
+                            <td><%= item.deliveryMethod %></td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- <div class="table-footer">
+                <button>Previous</button>
+                <button>Next</button>
+            </div> -->
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboard = document.querySelector('.dashboard');
+            const table = document.querySelector('.table-dashboard');
+
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const currentBtn = e.currentTarget;
+                    const name = currentBtn.dataset.name;
+                    
+                    if (currentBtn.classList.contains('active')) return;
+
+                    if (name === "dashboard") {
+                        table.classList.add('hidden');
+                        dashboard.classList.remove('hidden');
+                    } else {
+                        dashboard.classList.add('hidden');
+                        table.classList.remove('hidden');
+                    }
+                    
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    
+                    currentBtn.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
