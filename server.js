@@ -158,8 +158,6 @@ async function getWishlistDataFromDB() {
     );
     const orderIds = wishlsitOrderResults.rows.map(row => parseInt(row.order_id));
 
-    console.log('THE IDS - ', wishlsitOrderResults, orderIds)
-
     const secrets = getSecrets();
     const endpoint = secrets.SHOPIFY_STORE_URL;
     const ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
@@ -274,6 +272,7 @@ async function getWishlistDataFromDB() {
     
     return formattedOrders;
   } catch (error) {
+    console.log('AN ERROR - ', error)
     return [];
   }
 }
