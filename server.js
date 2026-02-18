@@ -321,6 +321,8 @@ app.post('/shopify_order_create', async (req, res) => {
     );
     if (!rows.length) return;
     const collectionItemId = rows[0].id;
+
+    console.log('the collection item ', collectionItemId)
     
     // Loop through order line items
     for (const item of lineItems) {
