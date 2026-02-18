@@ -185,7 +185,8 @@
     }
 
     .main .dashboard {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
     }
     .main .dashboard .card {
@@ -193,7 +194,7 @@
         border: 1px solid #EFE6F4;
         color: #6B7280;
         border-radius: 16px;
-        width: 100%;
+        /* width: 100%; */
     }
     .main .dashboard .card .c-header {
         font-size: 14px;
@@ -243,47 +244,82 @@
 
     <div class="main">
         <div class="tab">
-            <!-- <button class="tab-btn" data-name="dashboard">Dashboard</button> -->
-            <button class="tab-btn active" data-name="table">Wishlist Table</button>
+            <button class="tab-btn active" data-name="dashboard">Dashboard</button>
+            <button class="tab-btn" data-name="table">Wishlist Table</button>
         </div>
 
-        <div class="dashboard hidden">
+        <div class="dashboard">
             <div class="card">
-                <p class="c-header">Total Wishlist Users</p>
-                <p class="c-value">2,130</p>
+                <p class="c-header">Total Wishlist Profiles</p>
+                <p class="c-value"><%= stats.totalWishlistProfiles || '' %></p>
             </div>
             
             <div class="card">
                 <p class="c-header">Unique Wishlist Users</p>
-                <p class="c-value">2,130</p>
+                <p class="c-value"><%= stats.totalWishlistUsers || '' %></p>
             </div>
             
             <div class="card">
                 <p class="c-header">Wishlist Adoption Rate</p>
-                <p class="c-value">40%</p>
+                <p class="c-value"><%= stats.wishlistAdoptionRate || '' %> %</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist Adds</p>
+                <p class="c-value"><%= stats.wishistAdds || '' %></p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist Adds Per User</p>
+                <p class="c-value"><%= stats.wishlistAddsPerUser || '' %></p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Returning Wishlist Users</p>
+                <p class="c-value"><%= stats.wishlistReturningUsers || '' %> %</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist Feature Engagement Rate</p>
+                <p class="c-value"><%= stats.wishlistFeatureEngagementRate || '' %> %</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist-to-cart Conversion Rate</p>
+                <p class="c-value"><%= stats.wishlistToCart || '' %> %</p>
+            </div>
+            
+            <div class="card">
+                <p class="c-header">Wishlist-to-purchase Conversion Rate</p>
+                <p class="c-value"><%= stats.wishlistToPurchase || '' %> %</p>
             </div>
         </div>
 
-        <div class="table-dashboard">
+        <div class="table-dashboard hidden">
             <div class="filter">
-                <form id="filterForm" method="GET" action="/">
+                <form id="filterForm" method="GET" action="/" onsubmit="handleSearchSubmit(event)">
                     <input 
+                        id="searchInput"
                         type="text" 
                         name="search" 
-                        placeholder="Search by customer name"
+                        placeholder="Search by name or wishlist share id or order id"
                         value="<%= search || '' %>"
                     />
                     <!-- <button type="submit">Filter</button> -->
 
                     <div class="filtering-system">
                         <p>Filter by</p>
-                        <select name="paymentStatus" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Payment Status</option>
+                        <select name="paymentStatus" onchange="updateFilter('paymentStatus', this.value)">
+                            <option value="" disabled>Payment Status</option>
+                            <option value="" <%= paymentStatus === '' ? 'selected' : '' %>>All</option>
                             <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
                             <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="voided" <%= paymentStatus === 'voided' ? 'selected' : '' %>>Voided</option>
+                            <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
                         </select>
-                        <select name="fulfillmentStatus" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Fulfillment Status</option>
+                        <select name="fulfillmentStatus" onchange="updateFilter('fulfillmentStatus', this.value)">
+                            <option value="" disabled>Fulfillment Status</option>
+                            <option value="" <%= fulfillmentStatus === '' ? 'selected' : '' %>>All</option>
                             <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
                             <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
                         </select>
@@ -311,7 +347,7 @@
                     </thead>
                     
                     <tbody>
-                        <% data.forEach((item, index)=> { %>
+                        <% orders.forEach((item, index)=> { %>
                         <tr>
                             <td><%= index+1 %></td>
                             <td><%= item.orderId %></td>
@@ -344,6 +380,36 @@
             if (value) {
                 window.location.href = value;
             }
+        }
+
+        function handleSearchSubmit(e) {
+            e.preventDefault();
+
+            const url = new URL(window.location.href);
+            const searchValue = document.getElementById('searchInput').value.trim();
+
+            if (searchValue === '') {
+                url.searchParams.delete('search');
+            } else {
+                url.searchParams.set('search', searchValue);
+            }
+
+            // optional: reset pagination
+            // url.searchParams.delete('page');
+
+            window.location.href = url.toString();
+        }
+        
+        function updateFilter(key, value) {
+            const url = new URL(window.location.href);
+
+            if (value === '') {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, value);
+            }
+
+            window.location.href = url.toString();
         }
 
         document.addEventListener('DOMContentLoaded', () => {

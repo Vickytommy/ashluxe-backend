@@ -62,149 +62,6 @@ async function getImageUrl(imageName) {
   // return url;
 }
 
-// app.get('/', (req, res) => {
-//   res.send('ASHLUXE WISHLIST API is running....');
-// });
-(async () => {
-  try {
-    await bootstrap();
-
-app.set('view engine', 'ejs');
-app.set('views', path.join(process.cwd(), 'views'));
-
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-app.use(cors({
-  origin: [
-    'https://ash-luxe.com', 
-    'https://www.ash-luxe.com', 
-    "https://ashluxury.com", 
-    "https://www.ashluxury.com",
-    "https://extensions.shopifycdn.com"
-
-  ], // allowed frontends
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
-}));
-
-app.get('/', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus } = req.query;
-
-  let data = await getWishlistDataFromDB(); // your DB function
-
-  if (search && search.trim() !== "") {
-    data = data.filter(item =>
-      item.customerName.toLowerCase().includes(search.toLowerCase())
-    );
-  }
-  
-  // Filter by payment status
-  if (paymentStatus && paymentStatus !== "") {
-    data = data.filter(item =>
-      item.paymentStatus.toLowerCase() === paymentStatus.toLowerCase()
-    );
-  }
-
-  // Filter by fulfillment status
-  if (fulfillmentStatus && fulfillmentStatus !== "") {
-    data = data.filter(item =>
-      item.fulfillmentStatus.toLowerCase() === fulfillmentStatus.toLowerCase()
-    );
-  }
-
-  res.render('dashboard', {
-    data,
-    currentRoute: req.path,
-    search,
-    paymentStatus,
-    fulfillmentStatus
-  });
-});
-
-app.get('/ashluxury', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus } = req.query;
-
-  let data = await getWishlistDataFromDB('ashluxury'); // your DB function
-
-  if (search && search.trim() !== "") {
-    data = data.filter(item =>
-      item.customerName.toLowerCase().includes(search.toLowerCase())
-    );
-  }
-  
-  // Filter by payment status
-  if (paymentStatus && paymentStatus !== "") {
-    data = data.filter(item =>
-      item.paymentStatus.toLowerCase() === paymentStatus.toLowerCase()
-    );
-  }
-
-  // Filter by fulfillment status
-  if (fulfillmentStatus && fulfillmentStatus !== "") {
-    data = data.filter(item =>
-      item.fulfillmentStatus.toLowerCase() === fulfillmentStatus.toLowerCase()
-    );
-  }
-
-  res.render('dashboard', {
-    data,
-    currentRoute: req.path,
-    search,
-    paymentStatus,
-    fulfillmentStatus
-  });
-});
-
-app.post('/shopify_order_create', async (req, res) => {
-    const order = req.body;
-    const orderId = order?.id;
-    const wishlistShareId = order?.note_attributes?.find(
-      attr => attr.name === "wishlistShareId"
-    )?.value;
-
-    if (!orderId || !wishlistShareId) {
-      return;
-    }
-
-    // Insert into DB
-    await connection.query(
-      `INSERT INTO wishlist_orders (order_id, wishlist_share_id)
-       VALUES ($1, $2)
-       ON CONFLICT (order_id) DO NOTHING`,
-      [orderId, wishlistShareId]
-    );
-});
-
-app.post('/shopify_order_create_ashluxury', async (req, res) => {
-    const order = req.body;
-    const orderId = order?.id;
-    const wishlistShareId = order?.note_attributes?.find(
-      attr => attr.name === "wishlistShareId"
-    )?.value;
-
-    if (!orderId || !wishlistShareId) {
-      return;
-    }
-
-    // Insert into DB
-    await connection.query(
-      `INSERT INTO ashluxury_wishlist_orders (order_id, wishlist_share_id)
-       VALUES ($1, $2)
-       ON CONFLICT (order_id) DO NOTHING`,
-      [orderId, wishlistShareId]
-    );
-});
-
-app.get('/shopify_orders', async (req, res) => {
-  let data = await getWishlistDataFromDB();
-  if (data === null) {
-    res.status(500).json({ error: "Failed to fetch Shopify orders" });
-  } else {
-    res.status(200).json({ orders: data });
-  }
-});
-
 async function getWishlistDataFromDB(store) {
   try {
     const wishlsitOrderResults = await connection.query(
@@ -313,10 +170,11 @@ async function getWishlistDataFromDB(store) {
       return {
         orderId: order.name || order.id,
         wishlistShareId: wishlistAttr,
-        dateCreated: order.createdAt ? order.createdAt.split("T")[0] : "",
+        // dateCreated: order.createdAt ? order.createdAt.split("T")[0] : "",
+        dateCreated: formatOrderDate(order.createdAt) || "",
         customerName: order.customer ? `${order.customer.firstName} ${order.customer.lastName}` : "",
         channel: "Online store",
-        amount: order.totalPriceSet?.shopMoney?.amount || "0.00",
+        amount: `${order.totalPriceSet?.shopMoney?.amount} ${order.totalPriceSet?.shopMoney?.currencyCode}` || "0.00",
         paymentStatus: order.displayFinancialStatus?.toLowerCase() || "",
         fulfillmentStatus: order.displayFulfillmentStatus?.toLowerCase() || "",
         items: itemsCount === 1 ? "1 item" : `${itemsCount} items`, // ✅ formatted
@@ -331,6 +189,274 @@ async function getWishlistDataFromDB(store) {
     return [];
   }
 }
+
+function formatOrderDate(isoDate) {
+  if (!isoDate) return "";
+
+  const orderDate = new Date(isoDate);
+  const now = new Date();
+
+  const orderDay = orderDate.toDateString();
+  const today = now.toDateString();
+
+  // Yesterday
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+
+  let dayLabel = "";
+
+  if (orderDay === today) {
+    dayLabel = "today";
+  } else if (orderDay === yesterday.toDateString()) {
+    dayLabel = "yesterday";
+  } else {
+    // Wednesday, Monday, etc
+    dayLabel = orderDate.toLocaleDateString("en-US", { weekday: "long" });
+  }
+
+  // format time as HH:MM (24hr)
+  const time = orderDate.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+
+  return `${dayLabel} at ${time}`;
+}
+
+// app.get('/', (req, res) => {
+//   res.send('ASHLUXE WISHLIST API is running....');
+// });
+(async () => {
+  try {
+    await bootstrap();
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(process.cwd(), 'views'));
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.use(cors({
+  origin: [
+    'https://ash-luxe.com', 
+    'https://www.ash-luxe.com', 
+    "https://ashluxury.com", 
+    "https://www.ashluxury.com",
+    "https://extensions.shopifycdn.com"
+
+  ], // allowed frontends
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
+
+app.get('/', async (req, res) => {
+  const { search, paymentStatus, fulfillmentStatus } = req.query;
+
+  let tableData = await getWishlistDataFromDB(); // your DB function
+  let dashboardData = await getDashboardData();
+
+  if (search && search.trim() !== "") {
+    const term = search.toLowerCase();
+
+    tableData = tableData.filter(item =>
+      item.customerName.toLowerCase().includes(term) ||
+      item.wishlistShareId.toLowerCase().includes(term) ||
+      item.orderId.toLowerCase().includes(term)
+    );
+  }
+
+  // Filter by payment status
+  if (paymentStatus && paymentStatus !== "") {
+    tableData = tableData.filter(item =>
+      item.paymentStatus.toLowerCase() === paymentStatus.toLowerCase()
+    );
+  }
+
+  // Filter by fulfillment status
+  if (fulfillmentStatus && fulfillmentStatus !== "") {
+    tableData = tableData.filter(item =>
+      item.fulfillmentStatus.toLowerCase() === fulfillmentStatus.toLowerCase()
+    );
+  }
+
+  res.render('dashboard', {
+    stats: dashboardData,
+    orders: tableData,
+    currentRoute: req.path,
+    search,
+    paymentStatus,
+    fulfillmentStatus
+  });
+});
+
+app.post('/shopify_order_create', async (req, res) => {
+    const order = req.body;
+    const orderId = order?.id;
+    const lineItems = order?.line_items || [];
+    const wishlistShareId = order?.note_attributes?.find(
+      attr => attr.name === "wishlistShareId"
+    )?.value;
+
+    console.log('THE ORDER - ', order);
+
+    if (!orderId || !wishlistShareId) {
+      return;
+    }
+
+    // Insert into wishlist_orders DB
+    await connection.query(
+      `INSERT INTO wishlist_orders (order_id, wishlist_share_id)
+       VALUES ($1, $2)
+       ON CONFLICT (order_id) DO NOTHING`,
+      [orderId, wishlistShareId]
+    );
+
+    // UPDATE GIFTED column in collectionitem_product
+    // Get collectionitem id for this share_id
+    const { rows } = await connection.query(
+      `SELECT id FROM collectionitem WHERE share_id = $1`,
+      [wishlistShareId]
+    );
+    if (!rows.length) return;
+    const collectionItemId = rows[0].id;
+    
+    // Loop through order line items
+    for (const item of lineItems) {
+      const productId = item.product_id;
+      const quantity = item.quantity || 1;
+
+      if (!productId) continue;
+
+      // 3. Update gifted count if product exists
+      await connection.query(
+        `UPDATE collectionitem_product
+         SET gifted = gifted + $3
+         WHERE collectionitem_id = $1
+         AND product_id = $2`,
+        [collectionItemId, productId, quantity]
+      );
+    }
+});
+
+app.get('/ashluxury', async (req, res) => {
+  const { search, paymentStatus, fulfillmentStatus } = req.query;
+
+  let tableData = await getWishlistDataFromDB('ashluxury'); // your DB function
+  let dashboardData = await getDashboardData('ashluxury');
+
+  if (search && search.trim() !== "") {
+    const term = search.toLowerCase();
+
+    tableData = tableData.filter(item =>
+      item.customerName.toLowerCase().includes(term) ||
+      item.wishlistShareId.toLowerCase().includes(term) ||
+      item.orderId.toLowerCase().includes(term)
+    );
+  }
+
+  // Filter by payment status
+  if (paymentStatus && paymentStatus !== "") {
+    tableData = tableData.filter(item =>
+      item.paymentStatus.toLowerCase() === paymentStatus.toLowerCase()
+    );
+  }
+
+  // Filter by fulfillment status
+  if (fulfillmentStatus && fulfillmentStatus !== "") {
+    tableData = tableData.filter(item =>
+      item.fulfillmentStatus.toLowerCase() === fulfillmentStatus.toLowerCase()
+    );
+  }
+
+  res.render('dashboard', {
+    stats: dashboardData,
+    orders: tableData,
+    currentRoute: req.path,
+    search,
+    paymentStatus,
+    fulfillmentStatus
+  });
+});
+
+app.post('/shopify_order_create_ashluxury', async (req, res) => {
+    const order = req.body;
+    const orderId = order?.id;
+    const wishlistShareId = order?.note_attributes?.find(
+      attr => attr.name === "wishlistShareId"
+    )?.value;
+
+    if (!orderId || !wishlistShareId) {
+      return;
+    }
+
+    // Insert into DB
+    await connection.query(
+      `INSERT INTO ashluxury_wishlist_orders (order_id, wishlist_share_id)
+       VALUES ($1, $2)
+       ON CONFLICT (order_id) DO NOTHING`,
+      [orderId, wishlistShareId]
+    );
+});
+
+app.get('/shopify_orders', async (req, res) => {
+  let data = await getWishlistDataFromDB();
+  if (data === null) {
+    res.status(500).json({ error: "Failed to fetch Shopify orders" });
+  } else {
+    res.status(200).json({ orders: data });
+  }
+});
+
+async function getDashboardData(store) {
+  try {
+    // const secrets = getSecrets();
+    // let endpoint = secrets.SHOPIFY_STORE_URL;
+    // let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
+
+    if (store === 'ashluxury') {
+      // endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
+      // ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
+    }
+
+    // COUNT WISHLIST USERS
+    const wishlistUserResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM wishlist`
+    );
+    const totalWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
+
+    // COUNT WISHLIST USERS
+    const wishlistProfileResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM collectionitem`
+    );
+    const totalWishlistProfiles = parseInt(wishlistProfileResult.rows[0].total) || 0;
+
+    // COUNT WISHLIST USERS
+    const wishlistProductResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM collectionitem_product`
+    );
+    const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
+
+    const totalCustomers = 49652;
+    
+    const dashboardData = {
+      totalWishlistProfiles: totalWishlistProfiles,
+      totalWishlistUsers: totalWishlistUsers,
+      totalCustomers: totalCustomers,
+      wishlistAdoptionRate: parseFloat((totalWishlistUsers * 100 / totalCustomers).toFixed(2)),
+      wishistAdds: totalWishlistProducts,
+      wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
+      wishlistReturningUsers: '',
+      wishlistFeatureEngagementRate: '',
+      wishistToCart: '',
+      wishlistToPurchase: '',
+    }
+    return dashboardData;
+  } catch(error) {
+    console.log('[Error getting dashboard data]', error)
+    return null;
+  }
+};
 
 // UPLOAD PROFILE IMG
 app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
@@ -550,47 +676,6 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
 });
 
 // GET COLLECTION BY ID
-// app.get("/api/collection/:collectionId", async (req, res) => {
-//   const { collectionId } = req.params;
-
-//   try {
-//     const result = await connection.query(`
-//       SELECT 
-//           c.*,
-//           to_jsonb(da) AS delivery_address,
-//           COALESCE(
-//             json_agg(DISTINCT jsonb_build_object(
-//               'id', p.id,
-//               'product_id', p.product_id,
-//               'product_handle', p.product_handle,
-//               'title', p.title,
-//               'description', p.description,
-//               'price', p.price,
-//               'image_url', p.image_url,
-//               'gifted', p.gifted,
-//               'quantity', p.quantity,
-//               'variant_id', p.variant_id
-//             )) FILTER (WHERE p.id IS NOT NULL), '[]'
-//           ) AS products
-//       FROM collectionitem c
-//       LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
-//       LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
-//       WHERE c.id = $1
-//       GROUP BY c.id, da.id
-//     `, [collectionId]);
-
-//     if (result.rowCount === 0) {
-//       return res.status(404).json({ error: "Collection item not found" });
-//     }
-
-//     res.json({ collection: result.rows[0] });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
-
 app.get("/api/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
 
