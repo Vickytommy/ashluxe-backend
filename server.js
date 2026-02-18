@@ -206,9 +206,9 @@ function formatOrderDate(isoDate) {
   let dayLabel = "";
 
   if (orderDay === today) {
-    dayLabel = "today";
+    dayLabel = "Today";
   } else if (orderDay === yesterday.toDateString()) {
-    dayLabel = "yesterday";
+    dayLabel = "Yesterday";
   } else {
     // Wednesday, Monday, etc
     dayLabel = orderDate.toLocaleDateString("en-US", { weekday: "long" });
@@ -314,9 +314,10 @@ app.post('/shopify_order_create', async (req, res) => {
 
     // UPDATE GIFTED column in collectionitem_product
     // Get collectionitem id for this share_id
+    const prefixedShareId = `share_${wishlistShareId}`;
     const { rows } = await connection.query(
       `SELECT id FROM collectionitem WHERE share_id = $1`,
-      [wishlistShareId]
+      [prefixedShareId]
     );
     if (!rows.length) return;
     const collectionItemId = rows[0].id;
