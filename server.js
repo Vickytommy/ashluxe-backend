@@ -373,7 +373,7 @@ app.post('/shopify_cart_update', async (req, res) => {
     let existingProductIds = [];
 
     if (existingWebhook.length > 0) {
-      existingProductIds = existing[0].line_items || [];
+      existingProductIds = existingWebhook[0].line_items || [];
     }
 
     // find NEW product ids only
