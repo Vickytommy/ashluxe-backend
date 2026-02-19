@@ -349,7 +349,7 @@ app.post('/shopify_cart_update', async (req, res) => {
       attr => attr.name === "wishlistShareId"
     )?.value;
 
-    console.log('THE req & note- ', order, wishlistShareId);
+    console.log('THE req & note- ', wishlistShareId);
 });
 
 app.get('/ashluxury', async (req, res) => {
