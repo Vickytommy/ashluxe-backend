@@ -342,14 +342,66 @@ app.post('/shopify_order_create', async (req, res) => {
 });
 
 app.post('/shopify_cart_update', async (req, res) => {
+  try {
+    const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
-    const orderId = order?.id;
     const lineItems = order?.line_items || [];
-    const wishlistShareId = order?.note_attributes?.find(
-      attr => attr.name === "wishlistShareId"
-    )?.value;
 
-    console.log('THE req & note- ', order);
+    const note = order.note || "";
+    const match = note.match(/wishlistShareId=([^\s]+)/);
+    const wishlistShareId = match ? match[1] : null;
+
+    if (!wishlistShareId || !webhookId) return;
+
+    console.log('THE WISHLIST - ', wishlistShareId)
+
+    // 1. Check if webhook already processed
+    const { rows: existingWebhook } = await connection.query(
+      `SELECT 1 FROM processed_webhooks WHERE webhook_id = $1`,
+      [webhookId]
+    );
+
+    if (existingWebhook.length > 0) {
+      console.log("Duplicate webhook ignored:", webhookId);
+      return;
+    }
+
+    // 2. If not, Save webhook id
+    await connection.query(
+      `INSERT INTO processed_webhooks (webhook_id) VALUES ($1)`,
+      [webhookId]
+    );
+    
+    // UPDATE CARTED column in collectionitem_product
+    // Get collectionitem id for this share_id
+    const prefixedShareId = `share_${wishlistShareId}`;
+    const { rows } = await connection.query(
+      `SELECT id FROM collectionitem WHERE share_id = $1`,
+      [prefixedShareId]
+    );
+    if (!rows.length) return;
+    const collectionItemId = rows[0].id;
+    
+    // Loop through order line items
+    for (const item of lineItems) {
+      const productId = item.product_id;
+      const quantity = item.quantity || 1;
+
+      if (!productId) continue;
+
+      // 3. Update carted count if product exists
+      await connection.query(
+        `UPDATE collectionitem_product
+         SET carted = carted + $3
+         WHERE collectionitem_id = $1
+         AND product_id = $2`,
+        [collectionItemId, productId, quantity]
+      );
+    }
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Webhook processing failed:", err);
+  }
 });
 
 app.get('/ashluxury', async (req, res) => {
