@@ -374,10 +374,9 @@ app.post('/shopify_cart_update', async (req, res) => {
     
     // UPDATE CARTED column in collectionitem_product
     // Get collectionitem id for this share_id
-    const prefixedShareId = `share_${wishlistShareId}`;
     const { rows } = await connection.query(
       `SELECT id FROM collectionitem WHERE share_id = $1`,
-      [prefixedShareId]
+      [wishlistShareId]
     );
     if (!rows.length) return;
     const collectionItemId = rows[0].id;
@@ -398,6 +397,7 @@ app.post('/shopify_cart_update', async (req, res) => {
         [collectionItemId, productId, quantity]
       );
     }
+    console.log('Webhook finished processing')
     res.status(200).send("OK");
   } catch (error) {
     console.error("Webhook processing failed:", err);
