@@ -435,7 +435,7 @@ app.post('/shopify_cart_update', async (req, res) => {
     console.log('Webhook finished processing')
     res.status(200).send("OK");
   } catch (error) {
-    console.error("Webhook processing failed:", err);
+    console.error("Webhook processing failed:", error);
   }
 });
 
