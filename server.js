@@ -353,7 +353,7 @@ app.post('/shopify_cart_update', async (req, res) => {
 
     if (!wishlistShareId || !webhookId) return;
 
-    console.log('THE WISHLIST - ', wishlistShareId)
+    console.log('THE WISHLIST - ', wishlistShareId, order.id)
 
     // 1. Check if webhook already processed
     const { rows: existingWebhook } = await connection.query(
@@ -502,12 +502,14 @@ async function getDashboardData(store) {
     );
     const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
 
-    const wishlistGifted = await connection.query(
-      `SELECT COUNT(*) AS gifted_count 
-      FROM collectionitem_product 
-      WHERE gifted >= 1`
+    const wishlistCount = await connection.query(
+      `SELECT 
+        COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
+        COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
+      FROM collectionitem_product`
     );
-    const totalGifted = parseInt(wishlistGifted.rows[0].gifted_count, 10);
+    const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
+    const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
 
     const totalCustomers = 49652;
     
@@ -520,7 +522,7 @@ async function getDashboardData(store) {
       wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
       wishlistReturningUsers: '',
       wishlistFeatureEngagementRate: '',
-      wishistToCart: '',
+      wishistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
       wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
     }
     return dashboardData;
