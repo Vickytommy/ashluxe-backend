@@ -510,7 +510,6 @@ async function getDashboardData(store) {
     );
     const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
     const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
-    console.log('wishlist cont - ', wishlistCount)
 
     const totalCustomers = 49652;
     
@@ -523,7 +522,7 @@ async function getDashboardData(store) {
       wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
       wishlistReturningUsers: '',
       wishlistFeatureEngagementRate: '',
-      wishistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
+      wishlistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
       wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
     }
     return dashboardData;
