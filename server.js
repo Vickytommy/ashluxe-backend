@@ -298,19 +298,20 @@ app.post('/shopify_order_create', async (req, res) => {
       attr => attr.name === "wishlistShareId"
     )?.value;
 
-    console.log('THE ORDER - ', order);
-
     if (!orderId || !wishlistShareId) {
       return;
     }
 
     // Insert into wishlist_orders DB
-    await connection.query(
+    const orders = await connection.query(
       `INSERT INTO wishlist_orders (order_id, wishlist_share_id)
        VALUES ($1, $2)
        ON CONFLICT (order_id) DO NOTHING`,
       [orderId, wishlistShareId]
     );
+    if (orders.rowCount === 0) {
+      return;
+    }
 
     // UPDATE GIFTED column in collectionitem_product
     // Get collectionitem id for this share_id
@@ -321,8 +322,6 @@ app.post('/shopify_order_create', async (req, res) => {
     );
     if (!rows.length) return;
     const collectionItemId = rows[0].id;
-
-    console.log('the collection item ', collectionItemId)
     
     // Loop through order line items
     for (const item of lineItems) {
@@ -340,6 +339,17 @@ app.post('/shopify_order_create', async (req, res) => {
         [collectionItemId, productId, quantity]
       );
     }
+});
+
+app.post('/shopify_cart_update', async (req, res) => {
+    const order = req.body;
+    const orderId = order?.id;
+    const lineItems = order?.line_items || [];
+    const wishlistShareId = order?.note_attributes?.find(
+      attr => attr.name === "wishlistShareId"
+    )?.value;
+
+    console.log('THE req - ', req);
 });
 
 app.get('/ashluxury', async (req, res) => {
@@ -440,6 +450,13 @@ async function getDashboardData(store) {
     );
     const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
 
+    const wishlistGifted = await connection.query(
+      `SELECT COUNT(*) AS gifted_count 
+      FROM collectionitem_product 
+      WHERE gifted >= 1`
+    );
+    const totalGifted = parseInt(wishlistGifted.rows[0].gifted_count, 10);
+
     const totalCustomers = 49652;
     
     const dashboardData = {
@@ -452,7 +469,7 @@ async function getDashboardData(store) {
       wishlistReturningUsers: '',
       wishlistFeatureEngagementRate: '',
       wishistToCart: '',
-      wishlistToPurchase: '',
+      wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
     }
     return dashboardData;
   } catch(error) {
