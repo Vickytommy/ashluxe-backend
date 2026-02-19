@@ -510,6 +510,7 @@ async function getDashboardData(store) {
     );
     const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
     const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
+    console.log('wishlist cont - ', wishlistCount)
 
     const totalCustomers = 49652;
     
