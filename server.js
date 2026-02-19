@@ -345,48 +345,62 @@ app.post('/shopify_cart_update', async (req, res) => {
   try {
     const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
-    const lineItems = order?.line_items || [];
-
+    const orderId = order.id;
     const note = order.note || "";
     const match = note.match(/wishlistShareId=([^\s]+)/);
     const wishlistShareId = match ? match[1] : null;
+    const lineItems = order?.line_items || [];
+    const productIds = lineItems
+      .map(i => i.product_id)
+      .filter(Boolean);
 
-    if (!wishlistShareId || !webhookId) return;
+    if (!productIds.length) return;
 
-    console.log('THE WISHLIST - ', wishlistShareId, order.id)
+    if (!wishlistShareId || !webhookId || !orderId) return;
+
+    console.log('THE WISHLIST - ', wishlistShareId, orderId)
 
     // 1. Check if webhook already processed
+    // const { rows: existingWebhook } = await connection.query(
+    //   `SELECT 1 FROM processed_webhooks WHERE webhook_id = $1`,
+    //   [webhookId]
+    // );
     const { rows: existingWebhook } = await connection.query(
-      `SELECT 1 FROM processed_webhooks WHERE webhook_id = $1`,
-      [webhookId]
+      `SELECT line_items FROM processed_webhooks WHERE order_id = $1`,
+      [orderId]
     );
 
+    let existingProductIds = [];
+
     if (existingWebhook.length > 0) {
-      console.log("Duplicate webhook ignored:", webhookId);
+      existingProductIds = existing[0].line_items || [];
+    }
+
+    // find NEW product ids only
+    const newProductIds = productIds.filter(
+      pid => !existingProductIds.includes(pid)
+    );
+
+    // if no new products, return
+    if (newProductIds.length === 0) {
+      console.log("Duplicate webhook ignored:", orderId);
       return;
     }
 
-    // 2. If not, Save webhook id
-    await connection.query(
-      `INSERT INTO processed_webhooks (webhook_id) VALUES ($1)`,
-      [webhookId]
-    );
-    
     // UPDATE CARTED column in collectionitem_product
     // Get collectionitem id for this share_id
-    const { rows } = await connection.query(
+    const { rows: collectionRows } = await connection.query(
       `SELECT id FROM collectionitem WHERE share_id = $1`,
       [wishlistShareId]
     );
-    if (!rows.length) return;
-    const collectionItemId = rows[0].id;
-    
+    if (!collectionRows.length) return;
+    const collectionItemId = collectionRows[0].id;
     // Loop through order line items
     for (const item of lineItems) {
       const productId = item.product_id;
-      const quantity = item.quantity || 1;
+      const quantity = 1;
 
-      if (!productId) continue;
+      if (!newProductIds.includes(productId)) continue;
 
       // 3. Update carted count if product exists
       await connection.query(
@@ -397,6 +411,27 @@ app.post('/shopify_cart_update', async (req, res) => {
         [collectionItemId, productId, quantity]
       );
     }
+
+    // Now update processed_webhooks table
+    if (existingWebhook.length === 0) {
+      // first time order seen
+      await connection.query(
+        `INSERT INTO processed_webhooks (webhook_id, order_id, line_items)
+        VALUES ($1, $2, $3)`,
+        [webhookId, orderId, JSON.stringify(productIds)]
+      );
+    } else {
+      // append new product ids
+      const updatedProductIds = [...existingProductIds, ...newProductIds];
+
+      await connection.query(
+        `UPDATE processed_webhooks
+        SET line_items = $2
+        WHERE order_id = $1`,
+        [orderId, JSON.stringify(updatedProductIds)]
+      );
+    }
+    
     console.log('Webhook finished processing')
     res.status(200).send("OK");
   } catch (error) {
