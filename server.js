@@ -237,16 +237,18 @@ async function getDashboardData(store) {
     }
 
     // COUNT WISHLIST USERS
-    const wishlistUserResult = await connection.query(
+    const wishlistProfileResult = await connection.query(
       `SELECT COUNT(*) AS total FROM wishlist`
     );
-    const totalWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
+    const totalWishlistUsers = parseInt(wishlistProfileResult.rows[0].total) || 0;
 
-    // COUNT WISHLIST USERS
-    const wishlistProfileResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM collectionitem`
-    );
-    const totalWishlistProfiles = parseInt(wishlistProfileResult.rows[0].total) || 0;
+    // COUNT WISHLIST USERS that has added at least 1 product
+    const wishlistUserResult = await connection.query(`
+      SELECT COUNT(DISTINCT c.wishlist_id) AS total
+      FROM collectionitem_product cp
+      JOIN collectionitem c ON cp.collectionitem_id = c.id
+    `);
+    const totalUniqueWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
 
     // COUNT WISHLIST USERS
     const wishlistProductResult = await connection.query(
@@ -293,8 +295,8 @@ async function getDashboardData(store) {
     // console.log('THE UNIQE - ', uniqueReturningUsers, parseFloat((uniqueReturningUsers * 100 / totalCustomers).toFixed(3)))
     
     const dashboardData = {
-      totalWishlistProfiles: totalWishlistProfiles,
       totalWishlistUsers: totalWishlistUsers,
+      totalWishlistUniqueUsers: totalUniqueWishlistUsers,
       totalCustomers: totalCustomers,
       wishlistAdoptionRate: parseFloat((totalWishlistUsers * 100 / totalCustomers).toFixed(2)),
       wishistAdds: totalWishlistProducts,
