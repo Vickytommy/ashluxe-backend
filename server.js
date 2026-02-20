@@ -224,8 +224,73 @@ function formatOrderDate(isoDate) {
   return `${dayLabel} at ${time}`;
 }
 
+async function getDashboardData(store) {
+  try {
+    // const secrets = getSecrets();
+    // let endpoint = secrets.SHOPIFY_STORE_URL;
+    // let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
+
+    if (store === 'ashluxury') {
+      // endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
+      // ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
+    }
+
+    // COUNT WISHLIST USERS
+    const wishlistUserResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM wishlist`
+    );
+    const totalWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
+
+    // COUNT WISHLIST USERS
+    const wishlistProfileResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM collectionitem`
+    );
+    const totalWishlistProfiles = parseInt(wishlistProfileResult.rows[0].total) || 0;
+
+    // COUNT WISHLIST USERS
+    const wishlistProductResult = await connection.query(
+      `SELECT COUNT(*) AS total FROM collectionitem_product`
+    );
+    const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
+
+    const wishlistCount = await connection.query(
+      `SELECT 
+        COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
+        COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
+      FROM collectionitem_product`
+    );
+    const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
+    const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
+
+    const wishlistClickAnalyticsResult = await connection.query(
+      `SELECT COUNT(DISTINCT email) AS unique_email_count
+      FROM wishlist_analytics`
+    );
+    const uniqueEmailsCount = parseInt(wishlistClickAnalyticsResult.rows[0].unique_email_count);
+
+    const totalCustomers = 49652;
+    
+    const dashboardData = {
+      totalWishlistProfiles: totalWishlistProfiles,
+      totalWishlistUsers: totalWishlistUsers,
+      totalCustomers: totalCustomers,
+      wishlistAdoptionRate: parseFloat((totalWishlistUsers * 100 / totalCustomers).toFixed(2)),
+      wishistAdds: totalWishlistProducts,
+      wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
+      wishlistReturningUsers: '',
+      wishlistFeatureEngagementRate: parseFloat((uniqueEmailsCount * 100 / totalCustomers).toFixed(2)),
+      wishlistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
+      wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
+    }
+    return dashboardData;
+  } catch(error) {
+    console.log('[Error getting dashboard data]', error)
+    return null;
+  }
+};
+
 async function analytics(req) {
-  const { customerId, email } = req.body;
+  const { customerId, email } = req.body || {};
 
   if (!customerId || !email) return;
 
@@ -521,65 +586,6 @@ app.get('/shopify_orders', async (req, res) => {
   }
 });
 
-async function getDashboardData(store) {
-  try {
-    // const secrets = getSecrets();
-    // let endpoint = secrets.SHOPIFY_STORE_URL;
-    // let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
-
-    if (store === 'ashluxury') {
-      // endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
-      // ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
-    }
-
-    // COUNT WISHLIST USERS
-    const wishlistUserResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM wishlist`
-    );
-    const totalWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
-
-    // COUNT WISHLIST USERS
-    const wishlistProfileResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM collectionitem`
-    );
-    const totalWishlistProfiles = parseInt(wishlistProfileResult.rows[0].total) || 0;
-
-    // COUNT WISHLIST USERS
-    const wishlistProductResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM collectionitem_product`
-    );
-    const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
-
-    const wishlistCount = await connection.query(
-      `SELECT 
-        COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
-        COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
-      FROM collectionitem_product`
-    );
-    const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
-    const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
-
-    const totalCustomers = 49652;
-    
-    const dashboardData = {
-      totalWishlistProfiles: totalWishlistProfiles,
-      totalWishlistUsers: totalWishlistUsers,
-      totalCustomers: totalCustomers,
-      wishlistAdoptionRate: parseFloat((totalWishlistUsers * 100 / totalCustomers).toFixed(2)),
-      wishistAdds: totalWishlistProducts,
-      wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
-      wishlistReturningUsers: '',
-      wishlistFeatureEngagementRate: '',
-      wishlistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
-      wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
-    }
-    return dashboardData;
-  } catch(error) {
-    console.log('[Error getting dashboard data]', error)
-    return null;
-  }
-};
-
 // UPLOAD PROFILE IMG
 app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
   const { wishlistId } = req.params;
@@ -751,6 +757,7 @@ app.get("/api/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
+    await analytics(req);
     // 1️⃣ Check if wishlist exists
     const wishlistResult = await connection.query(
       "SELECT * FROM wishlist WHERE id = $1",
@@ -866,7 +873,7 @@ app.get("/api/collection/:collectionId", async (req, res) => {
 
 // POST COLLECTION BY SHARE ID
 // It is a post because of analytics
-app.post("/api/share/:shareId", async (req, res) => {
+app.get("/api/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
