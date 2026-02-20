@@ -461,7 +461,7 @@ app.post('/shopify_cart_update', async (req, res) => {
 
     // if no new products, return
     if (newProductIds.length === 0) {
-      console.log("Duplicate webhook ignored:", orderId);
+      // console.log("Duplicate webhook ignored:", orderId);
       return;
     }
 
@@ -752,8 +752,9 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
   }
 });
 
-// GET WISHLIST
-app.get("/api/wishlist/:wishlistId", async (req, res) => {
+// POST WISHLIST
+// Post because of analytics
+app.post("/api/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
