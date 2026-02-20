@@ -268,7 +268,28 @@ async function getDashboardData(store) {
     );
     const uniqueEmailsCount = parseInt(wishlistClickAnalyticsResult.rows[0].unique_email_count);
 
+    const wishlistReturningUsersResult = await connection.query(`
+      WITH ranked AS (
+        SELECT
+          email,
+          created_at,
+          LAG(created_at) OVER (PARTITION BY email ORDER BY created_at) AS prev_created_at
+        FROM wishlist_analytics
+        WHERE email IS NOT NULL
+      ),
+      qualified AS (
+        SELECT DISTINCT email
+        FROM ranked
+        WHERE prev_created_at IS NOT NULL
+          AND created_at - prev_created_at >= INTERVAL '24 hours'
+      )
+      SELECT COUNT(*) AS qualified_email_count
+      FROM qualified;
+    `);
+    const uniqueReturningUsers = wishlistReturningUsersResult.rows[0].qualified_email_count;
+
     const totalCustomers = 49652;
+    // console.log('THE UNIQE - ', uniqueReturningUsers, parseFloat((uniqueReturningUsers * 100 / totalCustomers).toFixed(3)))
     
     const dashboardData = {
       totalWishlistProfiles: totalWishlistProfiles,
@@ -277,8 +298,8 @@ async function getDashboardData(store) {
       wishlistAdoptionRate: parseFloat((totalWishlistUsers * 100 / totalCustomers).toFixed(2)),
       wishistAdds: totalWishlistProducts,
       wishlistAddsPerUser: parseFloat((totalWishlistProducts / totalWishlistUsers).toFixed(2)),
-      wishlistReturningUsers: '',
-      wishlistFeatureEngagementRate: parseFloat((uniqueEmailsCount * 100 / totalCustomers).toFixed(2)),
+      wishlistReturningUsers: parseFloat((uniqueReturningUsers * 100 / totalCustomers).toFixed(3)),
+      wishlistFeatureEngagementRate: parseFloat((uniqueEmailsCount * 100 / totalCustomers).toFixed(3)),
       wishlistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
       wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
     }
