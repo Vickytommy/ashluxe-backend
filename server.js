@@ -224,6 +224,19 @@ function formatOrderDate(isoDate) {
   return `${dayLabel} at ${time}`;
 }
 
+async function analytics(req) {
+  const { customerId, email } = req.body;
+
+  if (!customerId || !email) return;
+
+  await connection.query(
+    `INSERT INTO wishlist_analytics (customer_id, email)
+      VALUES ($1, $2)
+      RETURNING *`,
+    [customerId, email]
+  );
+};
+
 // app.get('/', (req, res) => {
 //   res.send('ASHLUXE WISHLIST API is running....');
 // });
@@ -358,7 +371,7 @@ app.post('/shopify_cart_update', async (req, res) => {
 
     if (!wishlistShareId || !webhookId || !orderId) return;
 
-    console.log('THE WISHLIST - ', wishlistShareId, orderId)
+    // console.log('THE WISHLIST - ', wishlistShareId, orderId)
 
     // 1. Check if webhook already processed
     // const { rows: existingWebhook } = await connection.query(
@@ -851,11 +864,13 @@ app.get("/api/collection/:collectionId", async (req, res) => {
   }
 });
 
-// GET COLLECTION BY SHARE ID
-app.get("/api/share/:shareId", async (req, res) => {
+// POST COLLECTION BY SHARE ID
+// It is a post because of analytics
+app.post("/api/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
+    await analytics(req);
     const result = await connection.query(`
       SELECT 
           -- Collection data excluding no_of_views and wishlist_id
