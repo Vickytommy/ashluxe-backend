@@ -231,6 +231,7 @@ async function getDashboardData(store) {
     // let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
 
     if (store === 'ashluxury') {
+      return [];
       // endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
       // ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
     }
