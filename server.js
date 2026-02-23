@@ -229,30 +229,32 @@ async function getDashboardData(store) {
     // const secrets = getSecrets();
     // let endpoint = secrets.SHOPIFY_STORE_URL;
     // let ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN ;
+    let storePrefix = "";
 
     if (store === 'ashluxury') {
-      return [];
+      storePrefix = "ashluxury_";
+      // return [];
       // endpoint = secrets.SHOPIFY_STORE_URL_ASHLUXURY;
       // ADMIN_ACCESS_TOKEN = secrets.SHOPIFY_ADMIN_ACCESS_TOKEN_ASHLUXURY;
     }
 
     // COUNT WISHLIST USERS
     const wishlistProfileResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM wishlist`
+      `SELECT COUNT(*) AS total FROM ${storePrefix}wishlist`
     );
     const totalWishlistUsers = parseInt(wishlistProfileResult.rows[0].total) || 0;
 
     // COUNT WISHLIST USERS that has added at least 1 product
     const wishlistUserResult = await connection.query(`
       SELECT COUNT(DISTINCT c.wishlist_id) AS total
-      FROM collectionitem_product cp
-      JOIN collectionitem c ON cp.collectionitem_id = c.id
+      FROM ${storePrefix}collectionitem_product cp
+      JOIN ${storePrefix}collectionitem c ON cp.collectionitem_id = c.id
     `);
     const totalUniqueWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
 
     // COUNT WISHLIST USERS
     const wishlistProductResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM collectionitem_product`
+      `SELECT COUNT(*) AS total FROM ${storePrefix}collectionitem_product`
     );
     const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
 
@@ -260,14 +262,14 @@ async function getDashboardData(store) {
       `SELECT 
         COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
         COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
-      FROM collectionitem_product`
+      FROM ${storePrefix}collectionitem_product`
     );
     const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
     const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
 
     const wishlistClickAnalyticsResult = await connection.query(
       `SELECT COUNT(DISTINCT email) AS unique_email_count
-      FROM wishlist_analytics`
+      FROM ${storePrefix}wishlist_analytics`
     );
     const uniqueEmailsCount = parseInt(wishlistClickAnalyticsResult.rows[0].unique_email_count);
 
@@ -277,7 +279,7 @@ async function getDashboardData(store) {
           email,
           created_at,
           LAG(created_at) OVER (PARTITION BY email ORDER BY created_at) AS prev_created_at
-        FROM wishlist_analytics
+        FROM ${storePrefix}wishlist_analytics
         WHERE email IS NOT NULL
       ),
       qualified AS (
@@ -291,7 +293,7 @@ async function getDashboardData(store) {
     `);
     const uniqueReturningUsers = wishlistReturningUsersResult.rows[0].qualified_email_count;
 
-    const totalCustomers = 49652;
+    const totalCustomers = storePrefix === "" ? 49652 : 37585;
     // console.log('THE UNIQE - ', uniqueReturningUsers, parseFloat((uniqueReturningUsers * 100 / totalCustomers).toFixed(3)))
     
     const dashboardData = {
@@ -313,13 +315,13 @@ async function getDashboardData(store) {
   }
 };
 
-async function analytics(req) {
+async function analytics(req, storePrefix="") {
   const { customerId, email } = req.body || {};
 
   if (!customerId || !email) return;
 
   await connection.query(
-    `INSERT INTO wishlist_analytics (customer_id, email)
+    `INSERT INTO ${storePrefix}wishlist_analytics (customer_id, email)
       VALUES ($1, $2)
       RETURNING *`,
     [customerId, email]
@@ -599,6 +601,97 @@ app.post('/shopify_order_create_ashluxury', async (req, res) => {
        ON CONFLICT (order_id) DO NOTHING`,
       [orderId, wishlistShareId]
     );
+});
+
+app.post('/shopify_cart_update_ashluxury', async (req, res) => {
+  try {
+    const webhookId = req.headers['x-shopify-webhook-id'];
+    const order = req.body;
+    const orderId = order.id;
+    const note = order.note || "";
+    const match = note.match(/wishlistShareId=([^\s]+)/);
+    const wishlistShareId = match ? match[1] : null;
+    const lineItems = order?.line_items || [];
+    const productIds = lineItems
+      .map(i => i.product_id)
+      .filter(Boolean);
+
+    if (!productIds.length) return;
+
+    if (!wishlistShareId || !webhookId || !orderId) return;
+    
+    const { rows: existingWebhook } = await connection.query(
+      `SELECT line_items FROM ashluxury_processed_webhooks WHERE order_id = $1`,
+      [orderId]
+    );
+
+    let existingProductIds = [];
+
+    if (existingWebhook.length > 0) {
+      existingProductIds = existingWebhook[0].line_items || [];
+    }
+
+    // find NEW product ids only
+    const newProductIds = productIds.filter(
+      pid => !existingProductIds.includes(pid)
+    );
+
+    // if no new products, return
+    if (newProductIds.length === 0) {
+      // console.log("Duplicate webhook ignored:", orderId);
+      return;
+    }
+
+    // UPDATE CARTED column in collectionitem_product
+    // Get collectionitem id for this share_id
+    const { rows: collectionRows } = await connection.query(
+      `SELECT id FROM ashluxury_collectionitem WHERE share_id = $1`,
+      [wishlistShareId]
+    );
+    if (!collectionRows.length) return;
+    const collectionItemId = collectionRows[0].id;
+    // Loop through order line items
+    for (const item of lineItems) {
+      const productId = item.product_id;
+      const quantity = 1;
+
+      if (!newProductIds.includes(productId)) continue;
+
+      // 3. Update carted count if product exists
+      await connection.query(
+        `UPDATE ashluxury_collectionitem_product
+         SET carted = carted + $3
+         WHERE collectionitem_id = $1
+         AND product_id = $2`,
+        [collectionItemId, productId, quantity]
+      );
+    }
+
+    // Now update processed_webhooks table
+    if (existingWebhook.length === 0) {
+      // first time order seen
+      await connection.query(
+        `INSERT INTO ashluxury_processed_webhooks (webhook_id, order_id, line_items)
+        VALUES ($1, $2, $3)`,
+        [webhookId, orderId, JSON.stringify(productIds)]
+      );
+    } else {
+      // append new product ids
+      const updatedProductIds = [...existingProductIds, ...newProductIds];
+
+      await connection.query(
+        `UPDATE ashluxury_processed_webhooks
+        SET line_items = $2
+        WHERE order_id = $1`,
+        [orderId, JSON.stringify(updatedProductIds)]
+      );
+    }
+    
+    console.log('Webhook finished processing')
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Webhook processing failed:", error);
+  }
 });
 
 app.get('/shopify_orders', async (req, res) => {
@@ -1482,6 +1575,7 @@ app.get("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
+    await analytics(req, "ashluxury_");
     // 1️⃣ Check if wishlist exists
     const wishlistResult = await connection.query(
       "SELECT * FROM ashluxury_wishlist WHERE id = $1",
@@ -1641,6 +1735,7 @@ app.get("/api/ashluxury/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
+    await analytics(req, "ashluxury_");
     const result = await connection.query(`
       SELECT 
           -- Collection data excluding no_of_views and wishlist_id
