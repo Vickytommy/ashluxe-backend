@@ -792,6 +792,7 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
   }
 
   try {
+    await analytics(req);
     // 1️⃣ Check if wishlist exists
     let wishlistResult = await connection.query(
       "SELECT id, first_name, last_name, image FROM wishlist WHERE id = $1",
@@ -1079,6 +1080,7 @@ app.post("/api/collection/:collectionId/product", async (req, res) => {
   } = req.body;
 
   try {
+    await analytics(req);
     // 1️⃣ Check if collectionitem exists AND belongs to the provided wishlist_id
     const collectionCheck = await connection.query(
       `SELECT id FROM collectionitem
@@ -1493,6 +1495,7 @@ app.post("/api/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
   }
 
   try {
+    await analytics(req, "ashluxury_");
     // 1️⃣ Check if wishlist exists
     let wishlistResult = await connection.query(
       "SELECT id, first_name, last_name, image FROM ashluxury_wishlist WHERE id = $1",
@@ -1821,6 +1824,7 @@ app.post("/api/ashluxury/collection/:collectionId/product", async (req, res) => 
   } = req.body;
 
   try {
+    await analytics(req, "ashluxury_");
     // 1️⃣ Check if collectionitem exists AND belongs to the provided wishlist_id
     const collectionCheck = await connection.query(
       `SELECT id FROM ashluxury_collectionitem
