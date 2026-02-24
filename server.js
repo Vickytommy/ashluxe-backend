@@ -1570,8 +1570,9 @@ app.post("/api/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
   }
 });
 
-// GET WISHLIST
-app.get("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
+// POST WISHLIST
+// Post because of analytics
+app.post("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
@@ -1730,7 +1731,8 @@ app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
   }
 });
 
-// GET COLLECTION BY SHARE ID
+// POST COLLECTION BY SHARE ID
+// Post because of analytics
 app.get("/api/ashluxury/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
