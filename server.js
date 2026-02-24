@@ -1062,6 +1062,80 @@ app.post("/api/share/:shareId", async (req, res) => {
   }
 });
 
+// GET COLLECTION BY SHARE ID
+// THIS IS SPECIFICALLY FOR CHECKOUT EXTENSION ON ASHLUXURY, I DON'T HAVE ACCESS TO IT
+// TO CHANGE THE METHOD TO POST, SO I'M KEEPING IT GET FOR NOW, 
+// AND WILL CHANGE IT TO POST ONCE I HAVE ACCESS TO THE EXTENSION (BECAUSE OF ANALYTICS)
+app.get("/api/share/:shareId", async (req, res) => {
+  const { shareId } = req.params;
+
+  try {
+    const result = await connection.query(`
+      SELECT 
+          -- Collection data excluding no_of_views and wishlist_id
+          (to_jsonb(c) - 'no_of_views' - 'wishlist_id') AS collection,
+
+          -- Delivery address
+          to_jsonb(da) AS delivery_address,
+
+          -- Products (without gifted)
+          COALESCE(
+            json_agg(DISTINCT jsonb_build_object(
+              'id', p.id,
+              'product_id', p.product_id,
+              'product_handle', p.product_handle,
+              'title', p.title,
+              'description', p.description,
+              'price', p.price,
+              'image_url', p.image_url,
+              'quantity', p.quantity,
+              'variant_id', p.variant_id
+            )) FILTER (WHERE p.id IS NOT NULL), '[]'
+          ) AS products,
+
+          -- Wishlist info (first_name, last_name, image)
+          jsonb_build_object(
+            'first_name', w.first_name,
+            'last_name', w.last_name,
+            'image', w.image
+          ) AS wishlist
+
+      FROM collectionitem c
+      LEFT JOIN collectionitem_deliveryaddress da ON da.collectionitem_id = c.id
+      LEFT JOIN collectionitem_product p ON p.collectionitem_id = c.id
+      LEFT JOIN wishlist w ON w.id = c.wishlist_id
+      WHERE c.share_id = $1
+        AND c.public = TRUE
+        AND (c.expiry_date IS NULL OR c.expiry_date >= NOW())
+      GROUP BY c.id, da.id, w.first_name, w.last_name, w.image
+    `, [shareId]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: "Collection item not found or link expired/unavailable",
+      });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      collection: {
+        ...row.collection,
+        delivery_address: row.delivery_address,
+        products: row.products
+      },
+      wishlist: {
+        ...row.wishlist,
+        image: await getImageUrl(row.wishlist.image)
+      }
+    });
+
+  } catch (err) {
+    console.error("Error fetching collection by share_id:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+// END OF CODE
+
 // ADD PRODUCT TO COLLECTION
 app.post("/api/collection/:collectionId/product", async (req, res) => {
   // Wishlist ID is passed in the body to verify ownership (it's same as customer id)
