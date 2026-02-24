@@ -992,7 +992,7 @@ app.get("/api/collection/:collectionId", async (req, res) => {
 
 // POST COLLECTION BY SHARE ID
 // It is a post because of analytics
-app.get("/api/share/:shareId", async (req, res) => {
+app.post("/api/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
@@ -1736,7 +1736,7 @@ app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
 
 // POST COLLECTION BY SHARE ID
 // Post because of analytics
-app.get("/api/ashluxury/share/:shareId", async (req, res) => {
+app.post("/api/ashluxury/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
