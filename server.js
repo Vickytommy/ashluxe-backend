@@ -240,14 +240,15 @@ function durationQuery(duration, alias = "") {
   }
 
   if (duration === "custom") {
-    return `WHERE ${col} BETWEEN $1 AND $2`;
+    // return `WHERE ${col} BETWEEN $1 AND $2`;
+    return "";
   }
 
   // inception / all time
   return "";
 }
 
-async function getDashboardData(store, duration="last_7_days") {
+async function getDashboardData(store, duration="") {
   try {
     // const secrets = getSecrets();
     // let endpoint = secrets.SHOPIFY_STORE_URL;
@@ -268,10 +269,11 @@ async function getDashboardData(store, duration="last_7_days") {
 
     // COUNT WISHLIST USERS that has added at least 1 product
     const wishlistUserResult = await connection.query(`
-      SELECT COUNT(DISTINCT c.wishlist_id) AS total
-      FROM ${storePrefix}collectionitem_product cp
-      JOIN ${storePrefix}collectionitem c ON cp.collectionitem_id = c.id
-      ${durationQuery(duration, "c")}
+      SELECT COUNT(DISTINCT w.id) AS total
+      FROM ${storePrefix}wishlist w
+      JOIN ${storePrefix}collectionitem c ON c.wishlist_id = w.id
+      JOIN ${storePrefix}collectionitem_product cp ON cp.collectionitem_id = c.id
+      ${durationQuery(duration, "w")}
     `);
     const totalUniqueWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
 
@@ -394,10 +396,10 @@ app.use(cors({
 }));
 
 app.get('/', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus } = req.query;
+  const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
 
   let tableData = await getWishlistDataFromDB(); // your DB function
-  let dashboardData = await getDashboardData();
+  let dashboardData = await getDashboardData('', dateStatus);
 
   if (search && search.trim() !== "") {
     const term = search.toLowerCase();
@@ -429,7 +431,8 @@ app.get('/', async (req, res) => {
     currentRoute: req.path,
     search,
     paymentStatus,
-    fulfillmentStatus
+    fulfillmentStatus,
+    dateStatus
   });
 });
 
@@ -509,8 +512,6 @@ app.post('/shopify_cart_update', async (req, res) => {
 
     if (!productIds.length) return;
 
-    console.log('THE WISHLIST (cart update) - ', wishlistShareId, webhookId, orderId);
-
     if (!wishlistShareId || !webhookId || !orderId) return;
 
 
@@ -534,7 +535,7 @@ app.post('/shopify_cart_update', async (req, res) => {
     const newProductIds = productIds.filter(
       pid => !existingProductIds.includes(pid)
     );
-    console.log('THE WISHLIST (newProductIds) - ', newProductIds);
+    // console.log('THE WISHLIST (newProductIds) - ', newProductIds);
 
     // if no new products, return
     if (newProductIds.length === 0) {
@@ -575,7 +576,7 @@ app.post('/shopify_cart_update', async (req, res) => {
         `,
         [collectionItemId, productId]
       );
-      console.log('THE WISHLIST (insertREsult) - ', insertResult);
+      // console.log('THE WISHLIST (insertREsult) - ', insertResult);
     }
 
     // Now update processed_webhooks table
@@ -606,10 +607,10 @@ app.post('/shopify_cart_update', async (req, res) => {
 });
 
 app.get('/ashluxury', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus } = req.query;
+  const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
 
   let tableData = await getWishlistDataFromDB('ashluxury'); // your DB function
-  let dashboardData = await getDashboardData('ashluxury');
+  let dashboardData = await getDashboardData('ashluxury', dateStatus);
 
   if (search && search.trim() !== "") {
     const term = search.toLowerCase();
@@ -641,7 +642,8 @@ app.get('/ashluxury', async (req, res) => {
     currentRoute: req.path,
     search,
     paymentStatus,
-    fulfillmentStatus
+    fulfillmentStatus,
+    dateStatus
   });
 });
 
