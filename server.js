@@ -509,9 +509,10 @@ app.post('/shopify_cart_update', async (req, res) => {
 
     if (!productIds.length) return;
 
+    console.log('THE WISHLIST (cart update) - ', wishlistShareId, webhookId, orderId);
+
     if (!wishlistShareId || !webhookId || !orderId) return;
 
-    // console.log('THE WISHLIST - ', wishlistShareId, orderId)
 
     // 1. Check if webhook already processed
     // const { rows: existingWebhook } = await connection.query(
@@ -533,6 +534,7 @@ app.post('/shopify_cart_update', async (req, res) => {
     const newProductIds = productIds.filter(
       pid => !existingProductIds.includes(pid)
     );
+    console.log('THE WISHLIST (newProductIds) - ', newProductIds);
 
     // if no new products, return
     if (newProductIds.length === 0) {
@@ -563,7 +565,7 @@ app.post('/shopify_cart_update', async (req, res) => {
       //    AND product_id = $2`,
       //   [collectionItemId, productId, quantity]
       // );
-      await connection.query(
+      const insertResult = await connection.query(
         `
         INSERT INTO collectionitem_product_carted (collectionitem_product_id, created_at)
         SELECT cip.id, NOW()
@@ -573,6 +575,7 @@ app.post('/shopify_cart_update', async (req, res) => {
         `,
         [collectionItemId, productId]
       );
+      console.log('THE WISHLIST (insertREsult) - ', insertResult);
     }
 
     // Now update processed_webhooks table
