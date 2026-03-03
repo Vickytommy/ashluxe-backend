@@ -224,7 +224,30 @@ function formatOrderDate(isoDate) {
   return `${dayLabel} at ${time}`;
 }
 
-async function getDashboardData(store) {
+function durationQuery(duration, alias = "") {
+  const col = alias ? `${alias}.created_at` : "created_at";
+
+  if (duration === "today") {
+    return `WHERE ${col} >= CURRENT_DATE`;
+  }
+
+  if (duration === "last_7_days") {
+    return `WHERE ${col} >= CURRENT_DATE - INTERVAL '7 days'`;
+  }
+
+  if (duration === "last_30_days") {
+    return `WHERE ${col} >= CURRENT_DATE - INTERVAL '30 days'`;
+  }
+
+  if (duration === "custom") {
+    return `WHERE ${col} BETWEEN $1 AND $2`;
+  }
+
+  // inception / all time
+  return "";
+}
+
+async function getDashboardData(store, duration="last_7_days") {
   try {
     // const secrets = getSecrets();
     // let endpoint = secrets.SHOPIFY_STORE_URL;
@@ -240,8 +263,7 @@ async function getDashboardData(store) {
 
     // COUNT WISHLIST USERS
     const wishlistProfileResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM ${storePrefix}wishlist`
-    );
+      `SELECT COUNT(*) AS total FROM ${storePrefix}wishlist ${durationQuery(duration)}`);
     const totalWishlistUsers = parseInt(wishlistProfileResult.rows[0].total) || 0;
 
     // COUNT WISHLIST USERS that has added at least 1 product
@@ -249,27 +271,44 @@ async function getDashboardData(store) {
       SELECT COUNT(DISTINCT c.wishlist_id) AS total
       FROM ${storePrefix}collectionitem_product cp
       JOIN ${storePrefix}collectionitem c ON cp.collectionitem_id = c.id
+      ${durationQuery(duration, "c")}
     `);
     const totalUniqueWishlistUsers = parseInt(wishlistUserResult.rows[0].total) || 0;
 
-    // COUNT WISHLIST USERS
-    const wishlistProductResult = await connection.query(
-      `SELECT COUNT(*) AS total FROM ${storePrefix}collectionitem_product`
-    );
+    // COUNT WISHLIST PRODUCT ADDS
+    const wishlistProductResult = await connection.query(`
+      SELECT COUNT(*) AS total
+      FROM ${storePrefix}collectionitem_product cp
+      JOIN ${storePrefix}collectionitem c
+        ON cp.collectionitem_id = c.id
+      ${durationQuery(duration, "c")}
+    `);
     const totalWishlistProducts = parseInt(wishlistProductResult.rows[0].total) || 0;
 
-    const wishlistCount = await connection.query(
-      `SELECT 
-        COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
-        COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
-      FROM ${storePrefix}collectionitem_product`
-    );
+    // const wishlistCount = await connection.query(
+    //   `SELECT 
+    //     COUNT(*) FILTER (WHERE gifted >= 1) AS gifted_count,
+    //     COUNT(*) FILTER (WHERE carted >= 1) AS carted_count
+    //   FROM ${storePrefix}collectionitem_product
+    // `);
+    const wishlistCount = await connection.query(`
+      SELECT
+        (SELECT COUNT(DISTINCT collectionitem_product_id) 
+        FROM ${storePrefix}collectionitem_product_gifted
+        ${durationQuery(duration)}) AS gifted_count,
+
+        (SELECT COUNT(DISTINCT collectionitem_product_id) 
+        FROM ${storePrefix}collectionitem_product_carted
+        ${durationQuery(duration)}) AS carted_count
+    `);
     const totalGifted = parseInt(wishlistCount.rows[0].gifted_count, 10);
     const totalCarted = parseInt(wishlistCount.rows[0].carted_count, 10);
+    console.log('[Duration query]:', durationQuery, totalGifted, totalCarted)
+
 
     const wishlistClickAnalyticsResult = await connection.query(
       `SELECT COUNT(DISTINCT email) AS unique_email_count
-      FROM ${storePrefix}wishlist_analytics`
+      FROM ${storePrefix}wishlist_analytics ${durationQuery(duration)}`
     );
     const uniqueEmailsCount = parseInt(wishlistClickAnalyticsResult.rows[0].unique_email_count);
 
@@ -280,7 +319,7 @@ async function getDashboardData(store) {
           created_at,
           LAG(created_at) OVER (PARTITION BY email ORDER BY created_at) AS prev_created_at
         FROM ${storePrefix}wishlist_analytics
-        WHERE email IS NOT NULL
+        ${durationQuery(duration)}
       ),
       qualified AS (
         SELECT DISTINCT email
@@ -435,12 +474,22 @@ app.post('/shopify_order_create', async (req, res) => {
       if (!productId) continue;
 
       // 3. Update gifted count if product exists
+      // await connection.query(
+      //   `UPDATE collectionitem_product
+      //    SET gifted = gifted + $3
+      //    WHERE collectionitem_id = $1
+      //    AND product_id = $2`,
+      //   [collectionItemId, productId, quantity]
+      // );
       await connection.query(
-        `UPDATE collectionitem_product
-         SET gifted = gifted + $3
-         WHERE collectionitem_id = $1
-         AND product_id = $2`,
-        [collectionItemId, productId, quantity]
+        `
+        INSERT INTO collectionitem_product_gifted (collectionitem_product_id, created_at)
+        SELECT cip.id, NOW()
+        FROM collectionitem_product cip
+        WHERE cip.collectionitem_id = $1
+          AND cip.product_id = $2
+        `,
+        [collectionItemId, productId]
       );
     }
 });
@@ -507,12 +556,22 @@ app.post('/shopify_cart_update', async (req, res) => {
       if (!newProductIds.includes(productId)) continue;
 
       // 3. Update carted count if product exists
+      // await connection.query(
+      //   `UPDATE collectionitem_product
+      //    SET carted = carted + $3
+      //    WHERE collectionitem_id = $1
+      //    AND product_id = $2`,
+      //   [collectionItemId, productId, quantity]
+      // );
       await connection.query(
-        `UPDATE collectionitem_product
-         SET carted = carted + $3
-         WHERE collectionitem_id = $1
-         AND product_id = $2`,
-        [collectionItemId, productId, quantity]
+        `
+        INSERT INTO collectionitem_product_carted (collectionitem_product_id, created_at)
+        SELECT cip.id, NOW()
+        FROM collectionitem_product cip
+        WHERE cip.collectionitem_id = $1
+          AND cip.product_id = $2
+        `,
+        [collectionItemId, productId]
       );
     }
 
@@ -586,6 +645,7 @@ app.get('/ashluxury', async (req, res) => {
 app.post('/shopify_order_create_ashluxury', async (req, res) => {
     const order = req.body;
     const orderId = order?.id;
+    const lineItems = order?.line_items || [];
     const wishlistShareId = order?.note_attributes?.find(
       attr => attr.name === "wishlistShareId"
     )?.value;
@@ -595,12 +655,45 @@ app.post('/shopify_order_create_ashluxury', async (req, res) => {
     }
 
     // Insert into DB
-    await connection.query(
+    const orders = await connection.query(
       `INSERT INTO ashluxury_wishlist_orders (order_id, wishlist_share_id)
        VALUES ($1, $2)
        ON CONFLICT (order_id) DO NOTHING`,
       [orderId, wishlistShareId]
     );
+
+    if (orders.rowCount === 0) {
+      return;
+    }
+
+    // UPDATE GIFTED column in collectionitem_product
+    // Get collectionitem id for this share_id
+    const prefixedShareId = `share_${wishlistShareId}`;
+    const { rows } = await connection.query(
+      `SELECT id FROM ashluxury_collectionitem WHERE share_id = $1`,
+      [prefixedShareId]
+    );
+    if (!rows.length) return;
+    const collectionItemId = rows[0].id;
+    
+    // Loop through order line items
+    for (const item of lineItems) {
+      const productId = item.product_id;
+      const quantity = item.quantity || 1;
+
+      if (!productId) continue;
+      
+      await connection.query(
+        `
+        INSERT INTO ashluxury_collectionitem_product_gifted (collectionitem_product_id, created_at)
+        SELECT cip.id, NOW()
+        FROM ashluxury_collectionitem_product cip
+        WHERE cip.collectionitem_id = $1
+          AND cip.product_id = $2
+        `,
+        [collectionItemId, productId]
+      );
+    }
 });
 
 app.post('/shopify_cart_update_ashluxury', async (req, res) => {
@@ -658,12 +751,22 @@ app.post('/shopify_cart_update_ashluxury', async (req, res) => {
       if (!newProductIds.includes(productId)) continue;
 
       // 3. Update carted count if product exists
+      // await connection.query(
+      //   `UPDATE ashluxury_collectionitem_product
+      //    SET carted = carted + $3
+      //    WHERE collectionitem_id = $1
+      //    AND product_id = $2`,
+      //   [collectionItemId, productId, quantity]
+      // );
       await connection.query(
-        `UPDATE ashluxury_collectionitem_product
-         SET carted = carted + $3
-         WHERE collectionitem_id = $1
-         AND product_id = $2`,
-        [collectionItemId, productId, quantity]
+        `
+        INSERT INTO ashluxury_collectionitem_product_carted (collectionitem_product_id, created_at)
+        SELECT cip.id, NOW()
+        FROM ashluxury_collectionitem_product cip
+        WHERE cip.collectionitem_id = $1
+          AND cip.product_id = $2
+        `,
+        [collectionItemId, productId]
       );
     }
 
