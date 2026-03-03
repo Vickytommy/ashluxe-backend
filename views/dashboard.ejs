@@ -268,7 +268,7 @@
                     <div class="filtering-system">
                         <!-- <p>Filter by</p> -->
                         <select name="dateStatus" onchange="handleDateStatus(this.value)">
-                            <option value="" disabled>Date Status</option>
+                            <option value="" disabled>Filter by Date</option>
                             <option value="" <%= dateStatus === 'since_inception' ? 'selected' : '' %>>Since Inception</option>
                             <option value="last_7_days" <%= dateStatus === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
                             <option value="last_30_days" <%= dateStatus === 'last_30_days' ? 'selected' : '' %>>Last 30 Days</option>
