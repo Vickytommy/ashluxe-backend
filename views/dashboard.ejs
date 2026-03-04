@@ -225,6 +225,22 @@
     .main .tab .filter {
         margin-left: auto;
     }
+    .main .tab .filtering-system {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+    }
+    .main .tab .filtering-system #custom-date-range {
+        display: flex;
+        gap: 12px;
+    }
+    .main .tab .filtering-system .date-box {
+        display: flex;
+        flex-direction: column;
+    }
+    .main .tab .filtering-system input {
+        width: 110px;
+    }
     .main .tab button {
         font-size: 14px;
         padding: 10px;
@@ -237,9 +253,9 @@
     .main .tab button.active {
         border-bottom: 2px solid #323339;
     }
-    .tab-btns:has(.tab-btn.active[data-name="table"]) + .filter {
+    /* .tab-btns:has(.tab-btn.active[data-name="table"]) + .filter {
         display: none;
-    }
+    } */
     .main .hidden {
         display: none !important;
     }
@@ -266,21 +282,25 @@
             <div class="filter">
                 <form id="dateForm" method="GET" action="/" onsubmit="handleDatingSubmit(event)">
                     <div class="filtering-system">
+                        <div id="custom-date-range" style="display:none; margin-top:10px;">
+                            <div class="date-box">
+                                <label>From</label>
+                                <input type="date" id="fromDate" name="fromDate" onchange="handleCustomDateChange()"/>
+                            </div>
+                            <div class="date-box">
+                                <label>To</label>
+                                <input type="date" id="toDate" name="toDate" onchange="handleCustomDateChange()"/>
+                            </div>
+                        </div>
+
                         <!-- <p>Filter by</p> -->
                         <select name="dateStatus" onchange="handleDateStatus(this.value)">
                             <option value="" disabled>Filter by Date</option>
                             <option value="" <%= dateStatus === 'since_inception' ? 'selected' : '' %>>Since Inception</option>
                             <option value="last_7_days" <%= dateStatus === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
                             <option value="last_30_days" <%= dateStatus === 'last_30_days' ? 'selected' : '' %>>Last 30 Days</option>
-                            <option value="custom" <%= dateStatus === 'custom' ? 'selected' : '' %>>Custom</option>
+                            <option value="custom" <%= dateStatus && dateStatus.startsWith('custom') ? 'selected' : '' %>>Custom</option>
                         </select>
-
-                        <div id="custom-date-range" style="display:none; margin-top:10px;">
-                        <label>From:</label>
-                        <input type="date" id="fromDate" name="fromDate" />
-                        <label>To:</label>
-                        <input type="date" id="toDate" name="toDate" />
-                        </div>
                     </div>
                 </form>
             </div>
@@ -452,10 +472,10 @@
 
         function handleDateStatus(value) {
             const customRange = document.getElementById("custom-date-range");
-
+            console.log('Selected date status:', value);
             // Show/hide custom date inputs
             if (value === "custom") {
-                customRange.style.display = "block";
+                customRange.style.display = "flex";
             } else {
                 customRange.style.display = "none";
 
@@ -464,11 +484,59 @@
             }
         }
 
+        function handleCustomDateChange() {
+            const from = document.getElementById("fromDate").value;
+            const to = document.getElementById("toDate").value;
+            const today = new Date().toISOString().split("T")[0];
+
+            // From date cannot be after
+            if (new Date(from) > new Date(to)) {
+                // errorEl.style.display = "block";
+                return; // ❌ do not update filter
+            }
+
+            // To date cannot be greater than today
+            if (new Date(to) > new Date(today)) {
+                // errorEl.textContent = "To date cannot be greater than today.";
+                // errorEl.style.display = "block";
+                return;
+            }
+
+            // Only update URL when both dates are selected
+            if (from && to) {
+                const combinedValue = `custom${from}_${to}`; // or `custom${from}-${to}`
+                updateFilter('dateStatus', combinedValue);
+            }
+        }
+
         // Show custom range if page loads with custom already selected
         document.addEventListener("DOMContentLoaded", () => {
             const selectedValue = "<%= dateStatus || '' %>";
-            if (selectedValue === "custom") {
-                document.getElementById("custom-date-range").style.display = "block";
+            const customRangeDiv = document.getElementById("custom-date-range");
+            const fromInput = document.getElementById("fromDate");
+            const toInput = document.getElementById("toDate");
+
+            // Check if dateStatus matches customYYYY-MM-DD_YYYY-MM-DD
+            const customRegex = /^custom(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/;
+            const match = selectedValue.match(customRegex);
+
+            // if (selectedValue === "custom") {
+            //     document.getElementById("custom-date-range").style.display = "block";
+            // }
+            if (selectedValue === "custom" || selectedValue.includes("custom")) {
+                customRangeDiv.style.display = "flex";
+            }
+
+            if (match) {
+                const from = match[1];
+                const to = match[2];
+
+                // Show inputs
+                customRangeDiv.style.display = "flex";
+
+                // Set values into inputs
+                fromInput.value = from;
+                toInput.value = to;
             }
         });
 

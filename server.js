@@ -62,10 +62,10 @@ async function getImageUrl(imageName) {
   // return url;
 }
 
-async function getWishlistDataFromDB(store) {
+async function getWishlistDataFromDB(store, duration) {
   try {
     const wishlsitOrderResults = await connection.query(
-      "SELECT order_id FROM wishlist_orders"
+      `SELECT order_id FROM wishlist_orders ${durationQuery(duration)}`
     );
     const orderIds = wishlsitOrderResults.rows.map(row => (row.order_id));
 
@@ -239,10 +239,21 @@ function durationQuery(duration, alias = "") {
     return `WHERE ${col} >= CURRENT_DATE - INTERVAL '30 days'`;
   }
 
-  if (duration === "custom") {
-    // return `WHERE ${col} BETWEEN $1 AND $2`;
-    return "";
+  // ✅ regex for customYYYY-MM-DD_YYYY-MM-DD
+  const customRegex = /^custom(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/;
+  const match = duration.match(customRegex);
+
+  if (match) {
+    const fromDate = match[1];
+    const toDate = match[2];
+
+    return `WHERE ${col} BETWEEN '${fromDate}' AND '${toDate}'`;
   }
+
+  // if (duration === "custom") {
+  //   // return `WHERE ${col} BETWEEN $1 AND $2`;
+  //   return "";
+  // }
 
   // inception / all time
   return "";
@@ -398,7 +409,7 @@ app.use(cors({
 app.get('/', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
 
-  let tableData = await getWishlistDataFromDB(); // your DB function
+  let tableData = await getWishlistDataFromDB('', dateStatus); // your DB function
   let dashboardData = await getDashboardData('', dateStatus);
 
   if (search && search.trim() !== "") {
@@ -609,7 +620,7 @@ app.post('/shopify_cart_update', async (req, res) => {
 app.get('/ashluxury', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
 
-  let tableData = await getWishlistDataFromDB('ashluxury'); // your DB function
+  let tableData = await getWishlistDataFromDB('ashluxury', dateStatus); // your DB function
   let dashboardData = await getDashboardData('ashluxury', dateStatus);
 
   if (search && search.trim() !== "") {
