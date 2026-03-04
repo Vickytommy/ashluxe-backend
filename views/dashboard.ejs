@@ -15,6 +15,19 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 8px; }
 
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #333;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        display: none;
+        z-index: 9999;
+        font-size: 14px;
+    }
+
     .nav {
         max-width: 1440px;
         display: flex;
@@ -231,12 +244,17 @@
         gap: 12px;
     }
     .main .tab .filtering-system #custom-date-range {
-        display: flex;
+        display: none;
         gap: 12px;
     }
     .main .tab .filtering-system .date-box {
         display: flex;
         flex-direction: column;
+    }
+    .main .tab .filtering-system .date-box label {
+        color: #B5B5B5;
+        font-size: 12px;
+        margin-bottom: 4px;
     }
     .main .tab .filtering-system input {
         width: 110px;
@@ -263,6 +281,8 @@
   </style>
 </head>
 <body>
+    <div id="toast" class="toast"></div>
+
     <div class="nav">
         <p class="nav-title">Wishlist Orders</p>
         <select class="nav-bio" id="storeSelect" onchange="redirectStore(this.value)">
@@ -282,7 +302,7 @@
             <div class="filter">
                 <form id="dateForm" method="GET" action="/" onsubmit="handleDatingSubmit(event)">
                     <div class="filtering-system">
-                        <div id="custom-date-range" style="display:none; margin-top:10px;">
+                        <div id="custom-date-range">
                             <div class="date-box">
                                 <label>From</label>
                                 <input type="date" id="fromDate" name="fromDate" onchange="handleCustomDateChange()"/>
@@ -484,6 +504,16 @@
             }
         }
 
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.style.display = "block";
+
+            setTimeout(() => {
+                toast.style.display = "none";
+            }, 3000);
+        }
+
         function handleCustomDateChange() {
             const from = document.getElementById("fromDate").value;
             const to = document.getElementById("toDate").value;
@@ -491,14 +521,13 @@
 
             // From date cannot be after
             if (new Date(from) > new Date(to)) {
-                // errorEl.style.display = "block";
-                return; // ❌ do not update filter
+                showToast("(FROM Date) cannot be after (TO Date).");
+                return;
             }
 
             // To date cannot be greater than today
             if (new Date(to) > new Date(today)) {
-                // errorEl.textContent = "To date cannot be greater than today.";
-                // errorEl.style.display = "block";
+                showToast("(TO Date) cannot be greater than today.");
                 return;
             }
 
