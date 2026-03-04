@@ -275,8 +275,8 @@
     <div class="main">
         <div class="tab">
             <div class="tab-btns">
-                <button class="tab-btn active" data-name="dashboard">Dashboard</button>
-                <button class="tab-btn" data-name="table">Wishlist Table</button>
+                <button class="tab-btn <%= tab === '' ? 'active' : '' %>" data-name="dashboard">Dashboard</button>
+                <button class="tab-btn <%= tab === 'table' ? 'active' : '' %>" data-name="table">Wishlist Table</button>
             </div>
 
             <div class="filter">
@@ -306,7 +306,7 @@
             </div>
         </div>
 
-        <div class="dashboard">
+        <div class="dashboard <%= tab === '' ? '' : 'hidden' %>">
             <div class="card">
                 <p class="c-header">Total Wishlist Users</p>
                 <p class="c-value"><%= stats.totalWishlistUsers || '0' %></p>
@@ -353,7 +353,7 @@
             </div>
         </div>
 
-        <div class="table-dashboard hidden">
+        <div class="table-dashboard <%= tab === 'table' ? '' : 'hidden' %>">
             <div class="filter">
                 <form id="filterForm" method="GET" action="/" onsubmit="handleSearchSubmit(event)">
                     <input 
@@ -550,19 +550,22 @@
                     const currentBtn = e.currentTarget;
                     const name = currentBtn.dataset.name;
                     
+                    // Prevent unnecessary reload if the same tab is clicked
                     if (currentBtn.classList.contains('active')) return;
 
                     if (name === "dashboard") {
-                        table.classList.add('hidden');
-                        dashboard.classList.remove('hidden');
+                        // table.classList.add('hidden');
+                        // dashboard.classList.remove('hidden');
+                        updateFilter('tab', '');
                     } else {
-                        dashboard.classList.add('hidden');
-                        table.classList.remove('hidden');
+                        // dashboard.classList.add('hidden');
+                        // table.classList.remove('hidden');
+                        updateFilter('tab', 'table');
                     }
                     
-                    tabBtns.forEach(b => b.classList.remove('active'));
+                    // tabBtns.forEach(b => b.classList.remove('active'));
                     
-                    currentBtn.classList.add('active');
+                    // currentBtn.classList.add('active');
                 });
             });
         });

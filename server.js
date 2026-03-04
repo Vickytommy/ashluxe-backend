@@ -227,9 +227,13 @@ function formatOrderDate(isoDate) {
 function durationQuery(duration, alias = "") {
   const col = alias ? `${alias}.created_at` : "created_at";
 
-  if (duration === "today") {
-    return `WHERE ${col} >= CURRENT_DATE`;
+  if (duration === undefined || duration === null || duration === "") {
+    return "";
   }
+
+  // if (duration === "today") {
+  //   return `WHERE ${col} >= CURRENT_DATE`;
+  // }
 
   if (duration === "last_7_days") {
     return `WHERE ${col} >= CURRENT_DATE - INTERVAL '7 days'`;
@@ -407,7 +411,7 @@ app.use(cors({
 }));
 
 app.get('/', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
+  const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
   let tableData = await getWishlistDataFromDB('', dateStatus); // your DB function
   let dashboardData = await getDashboardData('', dateStatus);
@@ -443,7 +447,8 @@ app.get('/', async (req, res) => {
     search,
     paymentStatus,
     fulfillmentStatus,
-    dateStatus
+    dateStatus,
+    tab: tab || ""
   });
 });
 
@@ -618,7 +623,7 @@ app.post('/shopify_cart_update', async (req, res) => {
 });
 
 app.get('/ashluxury', async (req, res) => {
-  const { search, paymentStatus, fulfillmentStatus, dateStatus } = req.query;
+  const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
   let tableData = await getWishlistDataFromDB('ashluxury', dateStatus); // your DB function
   let dashboardData = await getDashboardData('ashluxury', dateStatus);
@@ -654,7 +659,8 @@ app.get('/ashluxury', async (req, res) => {
     search,
     paymentStatus,
     fulfillmentStatus,
-    dateStatus
+    dateStatus,
+    tab: tab || ""
   });
 });
 
