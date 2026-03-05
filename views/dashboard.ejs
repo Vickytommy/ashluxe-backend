@@ -29,13 +29,16 @@
     }
 
     .nav {
+        background: #FFFFFF;
+        border-bottom: 1px solid #F3F4F6;
+    }
+    .nav .nav-container {
         max-width: 1440px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #F3F4F6;
         padding: 18px 40px;
-        background: #FFFFFF;
+        margin: auto;
     }
     .nav .nav-title {
         font-weight: 500;
@@ -66,6 +69,8 @@
 
     .main {
         background: #FFFFFF;
+    }
+    .main .main-wrapper {
         max-width: 1440px;
         margin: 24px auto 0;
         padding: 20px 40px;
@@ -284,170 +289,173 @@
     <div id="toast" class="toast"></div>
 
     <div class="nav">
-        <p class="nav-title">Wishlist Orders</p>
-        <select class="nav-bio" id="storeSelect" onchange="redirectStore(this.value)">
-            <option value="/" <%= currentRoute === "/" ? "selected" : "" %>>Ashluxe</option>
-            <option value="/ashluxury" <%= currentRoute === "/ashluxury" ? "selected" : "" %>>Ashluxury</option>
-        </select>
-
+        <div class="nav-container">
+            <p class="nav-title">Wishlist Orders</p>
+            <select class="nav-bio" id="storeSelect" onchange="redirectStore(this.value)">
+                <option value="/" <%= currentRoute === "/" ? "selected" : "" %>>Ashluxe</option>
+                <option value="/ashluxury" <%= currentRoute === "/ashluxury" ? "selected" : "" %>>Ashluxury</option>
+            </select>
+        </div>
     </div>
 
     <div class="main">
-        <div class="tab">
-            <div class="tab-btns">
-                <button class="tab-btn <%= tab === '' ? 'active' : '' %>" data-name="dashboard">Dashboard</button>
-                <button class="tab-btn <%= tab === 'table' ? 'active' : '' %>" data-name="table">Wishlist Table</button>
-            </div>
+        <div class="main-wrapper">
+            <div class="tab">
+                <div class="tab-btns">
+                    <button class="tab-btn <%= tab === '' ? 'active' : '' %>" data-name="dashboard">Dashboard</button>
+                    <button class="tab-btn <%= tab === 'table' ? 'active' : '' %>" data-name="table">Wishlist Table</button>
+                </div>
 
-            <div class="filter">
-                <form id="dateForm" method="GET" action="/" onsubmit="handleDatingSubmit(event)">
-                    <div class="filtering-system">
-                        <div id="custom-date-range">
-                            <div class="date-box">
-                                <label>From</label>
-                                <input type="date" id="fromDate" name="fromDate" onchange="handleCustomDateChange()"/>
+                <div class="filter">
+                    <form id="dateForm" method="GET" action="/" onsubmit="handleDatingSubmit(event)">
+                        <div class="filtering-system">
+                            <div id="custom-date-range">
+                                <div class="date-box">
+                                    <label>From</label>
+                                    <input type="date" id="fromDate" name="fromDate" onchange="handleCustomDateChange()"/>
+                                </div>
+                                <div class="date-box">
+                                    <label>To</label>
+                                    <input type="date" id="toDate" name="toDate" onchange="handleCustomDateChange()"/>
+                                </div>
                             </div>
-                            <div class="date-box">
-                                <label>To</label>
-                                <input type="date" id="toDate" name="toDate" onchange="handleCustomDateChange()"/>
-                            </div>
+
+                            <!-- <p>Filter by</p> -->
+                            <select name="dateStatus" onchange="handleDateStatus(this.value)">
+                                <option value="" <%= dateStatus === 'since_inception' ? 'selected' : '' %>>From Inception</option>
+                                <option value="last_7_days" <%= dateStatus === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
+                                <option value="last_30_days" <%= dateStatus === 'last_30_days' ? 'selected' : '' %>>Last 30 Days</option>
+                                <option value="custom" <%= dateStatus && dateStatus.startsWith('custom') ? 'selected' : '' %>>Custom</option>
+                            </select>
                         </div>
-
-                        <!-- <p>Filter by</p> -->
-                        <select name="dateStatus" onchange="handleDateStatus(this.value)">
-                            <option value="" <%= dateStatus === 'since_inception' ? 'selected' : '' %>>From Inception</option>
-                            <option value="last_7_days" <%= dateStatus === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
-                            <option value="last_30_days" <%= dateStatus === 'last_30_days' ? 'selected' : '' %>>Last 30 Days</option>
-                            <option value="custom" <%= dateStatus && dateStatus.startsWith('custom') ? 'selected' : '' %>>Custom</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="dashboard <%= tab === '' ? '' : 'hidden' %>">
-            <div class="card">
-                <p class="c-header">Total Wishlist Users</p>
-                <p class="c-value"><%= stats.totalWishlistUsers || '0' %></p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Unique Wishlist Users</p>
-                <p class="c-value"><%= stats.totalWishlistUniqueUsers || '0' %></p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist Adoption Rate</p>
-                <p class="c-value"><%= stats.wishlistAdoptionRate || '0.00' %> %</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist Adds</p>
-                <p class="c-value"><%= stats.wishistAdds || '0' %></p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist Adds Per User</p>
-                <p class="c-value"><%= stats.wishlistAddsPerUser || '0' %></p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Returning Wishlist Users</p>
-                <p class="c-value"><%= stats.wishlistReturningUsers || '0.00' %> %</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist Feature Engagement Rate</p>
-                <p class="c-value"><%= stats.wishlistFeatureEngagementRate || '0.00' %> %</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist-to-cart Conversion Rate</p>
-                <p class="c-value"><%= stats.wishlistToCart || '0.00' %> %</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist-to-purchase Conversion Rate</p>
-                <p class="c-value"><%= stats.wishlistToPurchase || '0.00' %> %</p>
-            </div>
-        </div>
-
-        <div class="table-dashboard <%= tab === 'table' ? '' : 'hidden' %>">
-            <div class="filter">
-                <form id="filterForm" method="GET" action="/" onsubmit="handleSearchSubmit(event)">
-                    <input 
-                        id="searchInput"
-                        type="text" 
-                        name="search" 
-                        placeholder="Search by name or wishlist share id or order id"
-                        value="<%= search || '' %>"
-                    />
-                    <!-- <button type="submit">Filter</button> -->
-
-                    <div class="filtering-system">
-                        <p>Filter by</p>
-                        <select name="paymentStatus" onchange="updateFilter('paymentStatus', this.value)">
-                            <option value="" disabled>Payment Status</option>
-                            <option value="" <%= paymentStatus === '' ? 'selected' : '' %>>All</option>
-                            <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
-                            <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
-                            <option value="voided" <%= paymentStatus === 'voided' ? 'selected' : '' %>>Voided</option>
-                            <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
-                        </select>
-                        <select name="fulfillmentStatus" onchange="updateFilter('fulfillmentStatus', this.value)">
-                            <option value="" disabled>Fulfillment Status</option>
-                            <option value="" <%= fulfillmentStatus === '' ? 'selected' : '' %>>All</option>
-                            <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
-                            <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
-                        </select>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
 
-            <div class="table-wrapper">
-                <table class="order-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Order ID</th>
-                            <th>Wishlist Share ID</th>
-                            <th>Date Created</th>
-                            <th>Customer Name</th>
-                            <th>Channel</th>
-                            <th>Amount</th>
-                            <th>Payment Status</th>
-                            <th>Fulfillment Status</th>
-                            <th>Items</th>
-                            <th>Delivery Status</th>
-                            <th>Delivery method</th>
-                        </tr>
-                    </thead>
-                    
-                    <tbody>
-                        <% orders.forEach((item, index)=> { %>
-                        <tr>
-                            <td><%= index+1 %></td>
-                            <td><%= item.orderId %></td>
-                            <td><%= item.wishlistShareId %></td>
-                            <td><%= item.dateCreated %></td>
-                            <td><%= item.customerName %></td>
-                            <td><%= item.channel %></td>
-                            <td><%= item.amount %></td>
-                            <td class="payment <%= item.paymentStatus %>"><span><%= item.paymentStatus %></span></td>
-                            <td class="fulfillment <%= item.paymentStatus %>"><span><%= item.fulfillmentStatus %></span></td>
-                            <td><%= item.items %></td>
-                            <td><%= item.deliveryStatus %></td>
-                            <td><%= item.deliveryMethod %></td>
-                        </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+            <div class="dashboard <%= tab === '' ? '' : 'hidden' %>">
+                <div class="card">
+                    <p class="c-header">Total Wishlist Users</p>
+                    <p class="c-value"><%= stats.totalWishlistUsers || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Unique Wishlist Users</p>
+                    <p class="c-value"><%= stats.totalWishlistUniqueUsers || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adoption Rate</p>
+                    <p class="c-value"><%= stats.wishlistAdoptionRate || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adds</p>
+                    <p class="c-value"><%= stats.wishistAdds || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adds Per User</p>
+                    <p class="c-value"><%= stats.wishlistAddsPerUser || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Returning Wishlist Users</p>
+                    <p class="c-value"><%= stats.wishlistReturningUsers || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Feature Engagement Rate</p>
+                    <p class="c-value"><%= stats.wishlistFeatureEngagementRate || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist-to-cart Conversion Rate</p>
+                    <p class="c-value"><%= stats.wishlistToCart || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist-to-purchase Conversion Rate</p>
+                    <p class="c-value"><%= stats.wishlistToPurchase || '0.00' %> %</p>
+                </div>
             </div>
 
-            <!-- <div class="table-footer">
-                <button>Previous</button>
-                <button>Next</button>
-            </div> -->
+            <div class="table-dashboard <%= tab === 'table' ? '' : 'hidden' %>">
+                <div class="filter">
+                    <form id="filterForm" method="GET" action="/" onsubmit="handleSearchSubmit(event)">
+                        <input 
+                            id="searchInput"
+                            type="text" 
+                            name="search" 
+                            placeholder="Search by name or wishlist share id or order id"
+                            value="<%= search || '' %>"
+                        />
+                        <!-- <button type="submit">Filter</button> -->
+
+                        <div class="filtering-system">
+                            <p>Filter by</p>
+                            <select name="paymentStatus" onchange="updateFilter('paymentStatus', this.value)">
+                                <option value="" disabled>Payment Status</option>
+                                <option value="" <%= paymentStatus === '' ? 'selected' : '' %>>All</option>
+                                <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+                                <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="voided" <%= paymentStatus === 'voided' ? 'selected' : '' %>>Voided</option>
+                                <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+                            </select>
+                            <select name="fulfillmentStatus" onchange="updateFilter('fulfillmentStatus', this.value)">
+                                <option value="" disabled>Fulfillment Status</option>
+                                <option value="" <%= fulfillmentStatus === '' ? 'selected' : '' %>>All</option>
+                                <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
+                                <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="order-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Order ID</th>
+                                <th>Wishlist Share ID</th>
+                                <th>Date Created</th>
+                                <th>Customer Name</th>
+                                <th>Channel</th>
+                                <th>Amount</th>
+                                <th>Payment Status</th>
+                                <th>Fulfillment Status</th>
+                                <th>Items</th>
+                                <th>Delivery Status</th>
+                                <th>Delivery method</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                            <% orders.forEach((item, index)=> { %>
+                            <tr>
+                                <td><%= index+1 %></td>
+                                <td><%= item.orderId %></td>
+                                <td><%= item.wishlistShareId %></td>
+                                <td><%= item.dateCreated %></td>
+                                <td><%= item.customerName %></td>
+                                <td><%= item.channel %></td>
+                                <td><%= item.amount %></td>
+                                <td class="payment <%= item.paymentStatus %>"><span><%= item.paymentStatus %></span></td>
+                                <td class="fulfillment <%= item.paymentStatus %>"><span><%= item.fulfillmentStatus %></span></td>
+                                <td><%= item.items %></td>
+                                <td><%= item.deliveryStatus %></td>
+                                <td><%= item.deliveryMethod %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- <div class="table-footer">
+                    <button>Previous</button>
+                    <button>Next</button>
+                </div> -->
+            </div>
         </div>
     </div>
 
