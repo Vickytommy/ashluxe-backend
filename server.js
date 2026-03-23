@@ -435,7 +435,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.get('/api', async (req, res) => {
+app.get('/', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
   let { tableData, totalRevenue } = await getWishlistDataFromDB('', dateStatus); // your DB function
@@ -477,7 +477,7 @@ app.get('/api', async (req, res) => {
   });
 });
 
-app.post('/api/shopify_order_create', async (req, res) => {
+app.post('/shopify_order_create', async (req, res) => {
     const order = req.body;
     const orderId = order?.id;
     const lineItems = order?.line_items || [];
@@ -538,7 +538,7 @@ app.post('/api/shopify_order_create', async (req, res) => {
     }
 });
 
-app.post('/api/shopify_cart_update', async (req, res) => {
+app.post('/shopify_cart_update', async (req, res) => {
   try {
     const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
@@ -647,7 +647,7 @@ app.post('/api/shopify_cart_update', async (req, res) => {
   }
 });
 
-app.get('/api/ashluxury', async (req, res) => {
+app.get('/ashluxury', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
   let { tableData, totalRevenue } = await getWishlistDataFromDB('ashluxury', dateStatus); // your DB function
@@ -689,7 +689,7 @@ app.get('/api/ashluxury', async (req, res) => {
   });
 });
 
-app.post('/api/shopify_order_create_ashluxury', async (req, res) => {
+app.post('/shopify_order_create_ashluxury', async (req, res) => {
     const order = req.body;
     const orderId = order?.id;
     const lineItems = order?.line_items || [];
@@ -743,7 +743,7 @@ app.post('/api/shopify_order_create_ashluxury', async (req, res) => {
     }
 });
 
-app.post('/api/shopify_cart_update_ashluxury', async (req, res) => {
+app.post('/shopify_cart_update_ashluxury', async (req, res) => {
   try {
     const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
@@ -844,7 +844,7 @@ app.post('/api/shopify_cart_update_ashluxury', async (req, res) => {
   }
 });
 
-app.get('/api/shopify_orders', async (req, res) => {
+app.get('/shopify_orders', async (req, res) => {
   let data = await getWishlistDataFromDB();
   if (data === null) {
     res.status(500).json({ error: "Failed to fetch Shopify orders" });
@@ -854,7 +854,7 @@ app.get('/api/shopify_orders', async (req, res) => {
 });
 
 // UPLOAD PROFILE IMG
-app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
+app.post("/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
@@ -923,7 +923,7 @@ app.post("/api/wishlist/:wishlistId/upload", upload.single('profileImg'), async 
 });
 
 // ADD COLLECTION
-app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
+app.post("/wishlist/:wishlistId/collection", async (req, res) => {
   const { wishlistId } = req.params;
   const { title, first_name, last_name, image,
 
@@ -1022,7 +1022,7 @@ app.post("/api/wishlist/:wishlistId/collection", async (req, res) => {
 
 // POST WISHLIST
 // Post because of analytics
-app.post("/api/wishlist/:wishlistId", async (req, res) => {
+app.post("/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
@@ -1074,7 +1074,7 @@ app.post("/api/wishlist/:wishlistId", async (req, res) => {
 });
 
 // GET COLLECTION BY ID
-app.get("/api/collection/:collectionId", async (req, res) => {
+app.get("/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
 
   try {
@@ -1142,7 +1142,7 @@ app.get("/api/collection/:collectionId", async (req, res) => {
 
 // POST COLLECTION BY SHARE ID
 // It is a post because of analytics
-app.post("/api/share/:shareId", async (req, res) => {
+app.post("/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
@@ -1213,7 +1213,7 @@ app.post("/api/share/:shareId", async (req, res) => {
 });
 
 // ADD PRODUCT TO COLLECTION
-app.post("/api/collection/:collectionId/product", async (req, res) => {
+app.post("/collection/:collectionId/product", async (req, res) => {
   // Wishlist ID is passed in the body to verify ownership (it's same as customer id)
   const { collectionId } = req.params;
   const {
@@ -1274,7 +1274,7 @@ app.post("/api/collection/:collectionId/product", async (req, res) => {
 });
 
 // UPDATE PRODUCT VARIANT IN COLLECTION
-app.put("/api/collection/:collectionId/product/:productId/variant", async (req, res) => {
+app.put("/collection/:collectionId/product/:productId/variant", async (req, res) => {
   const { collectionId, productId } = req.params;
   const { wishlist_id, variant_id } = req.body;
 
@@ -1322,7 +1322,7 @@ app.put("/api/collection/:collectionId/product/:productId/variant", async (req, 
 });
 
 // DELETE PRODUCT FROM COLLECTION
-app.delete("/api/collection/:collectionId/product/:productId", async (req, res) => {
+app.delete("/collection/:collectionId/product/:productId", async (req, res) => {
   const { collectionId, productId } = req.params;
   const { wishlist_id } = req.body; // Pass wishlist_id in body
 
@@ -1448,7 +1448,7 @@ app.delete("/api/collection/:collectionId/product/:productId", async (req, res) 
 //   }
 // });
 
-app.put("/api/collection/:collectionId", async (req, res) => {
+app.put("/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
   const { wishlist_id, delivery_address, ...bodyFields } = req.body;
 
@@ -1556,7 +1556,7 @@ app.put("/api/collection/:collectionId", async (req, res) => {
 // ASHLUXURY BACKEND SERVER.JS
 
 // UPLOAD PROFILE IMG
-app.post("/api/ashluxury/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
+app.post("/ashluxury/wishlist/:wishlistId/upload", upload.single('profileImg'), async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
@@ -1626,7 +1626,7 @@ app.post("/api/ashluxury/wishlist/:wishlistId/upload", upload.single('profileImg
 
 
 // ADD COLLECTION
-app.post("/api/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
+app.post("/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
   const { wishlistId } = req.params;
   const { title, first_name, last_name, image,
 
@@ -1725,7 +1725,7 @@ app.post("/api/ashluxury/wishlist/:wishlistId/collection", async (req, res) => {
 
 // POST WISHLIST
 // Post because of analytics
-app.post("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
+app.post("/ashluxury/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
 
   try {
@@ -1818,7 +1818,7 @@ app.post("/api/ashluxury/wishlist/:wishlistId", async (req, res) => {
 //   }
 // });
 
-app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
+app.get("/ashluxury/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
 
   try {
@@ -1886,7 +1886,7 @@ app.get("/api/ashluxury/collection/:collectionId", async (req, res) => {
 
 // POST COLLECTION BY SHARE ID
 // Post because of analytics
-app.post("/api/ashluxury/share/:shareId", async (req, res) => {
+app.post("/ashluxury/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
@@ -1960,7 +1960,7 @@ app.post("/api/ashluxury/share/:shareId", async (req, res) => {
 // THIS IS SPECIFICALLY FOR CHECKOUT EXTENSION ON ASHLUXURY, I DON'T HAVE ACCESS TO IT
 // TO CHANGE THE METHOD TO POST, SO I'M KEEPING IT GET FOR NOW, 
 // AND WILL CHANGE IT TO POST ONCE I HAVE ACCESS TO THE EXTENSION (BECAUSE OF ANALYTICS)
-app.get("/api/ashluxury/share/:shareId", async (req, res) => {
+app.get("/ashluxury/share/:shareId", async (req, res) => {
   const { shareId } = req.params;
 
   try {
@@ -2032,7 +2032,7 @@ app.get("/api/ashluxury/share/:shareId", async (req, res) => {
 // END OF CODE 
 
 // ADD PRODUCT TO COLLECTION
-app.post("/api/ashluxury/collection/:collectionId/product", async (req, res) => {
+app.post("/ashluxury/collection/:collectionId/product", async (req, res) => {
   // Wishlist ID is passed in the body to verify ownership (it's same as customer id)
   const { collectionId } = req.params;
   const {
@@ -2093,7 +2093,7 @@ app.post("/api/ashluxury/collection/:collectionId/product", async (req, res) => 
 });
 
 // UPDATE PRODUCT VARIANT IN COLLECTION
-app.put("/api/ashluxury/collection/:collectionId/product/:productId/variant", async (req, res) => {
+app.put("/ashluxury/collection/:collectionId/product/:productId/variant", async (req, res) => {
   const { collectionId, productId } = req.params;
   const { wishlist_id, variant_id } = req.body;
 
@@ -2141,7 +2141,7 @@ app.put("/api/ashluxury/collection/:collectionId/product/:productId/variant", as
 });
 
 // DELETE PRODUCT FROM COLLECTION
-app.delete("/api/ashluxury/collection/:collectionId/product/:productId", async (req, res) => {
+app.delete("/ashluxury/collection/:collectionId/product/:productId", async (req, res) => {
   const { collectionId, productId } = req.params;
   const { wishlist_id } = req.body; // Pass wishlist_id in body
 
@@ -2266,7 +2266,7 @@ app.delete("/api/ashluxury/collection/:collectionId/product/:productId", async (
 //   }
 // });
 
-app.put("/api/ashluxury/collection/:collectionId", async (req, res) => {
+app.put("/ashluxury/collection/:collectionId", async (req, res) => {
   const { collectionId } = req.params;
   const { wishlist_id, delivery_address, ...bodyFields } = req.body;
 
