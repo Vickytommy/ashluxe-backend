@@ -11,6 +11,7 @@ import sharp from "sharp";
 import bootstrap from "./config/bootstrap.js";
 import dotenv from "dotenv";
 import { getSecrets } from './config/secrets.js';
+import { Console } from "console";
 // import errorHandler from "./middleware/errorHandler.js";
 
 // load env vars
@@ -156,6 +157,12 @@ async function getWishlistDataFromDB(store, duration) {
 
     const orders = result.data.nodes.filter(Boolean);
 
+    const totalRevenue = orders.reduce((sum, order) => {
+      const amount = parseFloat(order.totalPriceSet?.shopMoney?.amount || 0);
+      return sum + amount;
+    }, 0);
+    console.log('TOTAL REVENUE - ', totalRevenue)
+
     // Map Shopify response into your dashboard format
     const formattedOrders = orders.map(order => {
       // Get wishlist_share_id from customAttributes
@@ -183,10 +190,10 @@ async function getWishlistDataFromDB(store, duration) {
       };
     });
     
-    return formattedOrders;
+    return { formattedOrders, totalRevenue };
   } catch (error) {
     console.log('AN ERROR - ', error)
-    return [];
+    return { formattedOrders: [], totalRevenue: 0 };
   }
 }
 
@@ -349,6 +356,19 @@ async function getDashboardData(store, duration="") {
     `);
     const uniqueReturningUsers = wishlistReturningUsersResult.rows[0].qualified_email_count;
 
+    const mostWishlistedProducts = await connection.query(
+      `SELECT cp.product_id,
+      COUNT(cp.id) AS occurrence_count,
+      COUNT(cpg.id) AS gifted_count
+      FROM collectionitem_product cp
+      LEFT JOIN collectionitem_product_gifted cpg
+        ON cpg.collectionitem_product_id = cp.id
+      GROUP BY cp.product_id
+      ORDER BY occurrence_count DESC
+      LIMIT 5;
+    `);
+    console.log('THE WISHLIST (mostWishlistedProducts) - ', mostWishlistedProducts.rows)
+
     const totalCustomers = storePrefix === "" ? 49652 : 37585;
     // console.log('THE UNIQE - ', uniqueReturningUsers, parseFloat((uniqueReturningUsers * 100 / totalCustomers).toFixed(3)))
     
@@ -363,6 +383,11 @@ async function getDashboardData(store, duration="") {
       wishlistFeatureEngagementRate: parseFloat((uniqueEmailsCount * 100 / totalCustomers).toFixed(3)),
       wishlistToCart: parseFloat((totalCarted * 100 / totalWishlistProducts).toFixed(2)),
       wishlistToPurchase: parseFloat((totalGifted * 100 / totalWishlistProducts).toFixed(2)),
+
+      revenueInfluencedByWishlist: '',
+      mostWishlistedCategories: '',
+      outOfStockWishlistedProducts: '',
+      wishlistCreatorVsGifterUsage: '',
     }
     return dashboardData;
   } catch(error) {
@@ -410,10 +435,10 @@ app.use(cors({
   credentials: true
 }));
 
-app.get('/', async (req, res) => {
+app.get('/api', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
-  let tableData = await getWishlistDataFromDB('', dateStatus); // your DB function
+  let { tableData, totalRevenue } = await getWishlistDataFromDB('', dateStatus); // your DB function
   let dashboardData = await getDashboardData('', dateStatus);
 
   if (search && search.trim() !== "") {
@@ -452,7 +477,7 @@ app.get('/', async (req, res) => {
   });
 });
 
-app.post('/shopify_order_create', async (req, res) => {
+app.post('/api/shopify_order_create', async (req, res) => {
     const order = req.body;
     const orderId = order?.id;
     const lineItems = order?.line_items || [];
@@ -513,7 +538,7 @@ app.post('/shopify_order_create', async (req, res) => {
     }
 });
 
-app.post('/shopify_cart_update', async (req, res) => {
+app.post('/api/shopify_cart_update', async (req, res) => {
   try {
     const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
@@ -622,10 +647,10 @@ app.post('/shopify_cart_update', async (req, res) => {
   }
 });
 
-app.get('/ashluxury', async (req, res) => {
+app.get('/api/ashluxury', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
 
-  let tableData = await getWishlistDataFromDB('ashluxury', dateStatus); // your DB function
+  let { tableData, totalRevenue } = await getWishlistDataFromDB('ashluxury', dateStatus); // your DB function
   let dashboardData = await getDashboardData('ashluxury', dateStatus);
 
   if (search && search.trim() !== "") {
@@ -664,7 +689,7 @@ app.get('/ashluxury', async (req, res) => {
   });
 });
 
-app.post('/shopify_order_create_ashluxury', async (req, res) => {
+app.post('/api/shopify_order_create_ashluxury', async (req, res) => {
     const order = req.body;
     const orderId = order?.id;
     const lineItems = order?.line_items || [];
@@ -718,7 +743,7 @@ app.post('/shopify_order_create_ashluxury', async (req, res) => {
     }
 });
 
-app.post('/shopify_cart_update_ashluxury', async (req, res) => {
+app.post('/api/shopify_cart_update_ashluxury', async (req, res) => {
   try {
     const webhookId = req.headers['x-shopify-webhook-id'];
     const order = req.body;
@@ -819,7 +844,7 @@ app.post('/shopify_cart_update_ashluxury', async (req, res) => {
   }
 });
 
-app.get('/shopify_orders', async (req, res) => {
+app.get('/api/shopify_orders', async (req, res) => {
   let data = await getWishlistDataFromDB();
   if (data === null) {
     res.status(500).json({ error: "Failed to fetch Shopify orders" });
