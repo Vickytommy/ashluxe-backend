@@ -419,9 +419,6 @@ async function analytics(req, storePrefix="") {
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
 app.use(cors({
   origin: [
     'https://ash-luxe.com', 
@@ -434,6 +431,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 app.get('/', async (req, res) => {
   const { search, paymentStatus, fulfillmentStatus, dateStatus, tab } = req.query;
