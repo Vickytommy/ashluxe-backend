@@ -15,14 +15,30 @@
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 8px; }
 
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #333;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        display: none;
+        z-index: 9999;
+        font-size: 14px;
+    }
+
     .nav {
+        background: #FFFFFF;
+        border-bottom: 1px solid #F3F4F6;
+    }
+    .nav .nav-container {
         max-width: 1440px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid #F3F4F6;
         padding: 18px 40px;
-        background: #FFFFFF;
+        margin: auto;
     }
     .nav .nav-title {
         font-weight: 500;
@@ -30,19 +46,31 @@
         line-height: 28px;
         color: #061C55;
     }
-    .nav .nav-bio {
+    /* .nav .nav-bio {
         display: flex;
         gap: 8px;
-    }
-    .nav .nav-bio p {
+    } */
+    .nav .nav-bio {
+        border: 0;
         font-weight: 500;
-        font-size: 18px;
+        font-size: 16px;
         line-height: 28px;
         color: #061C55;
+        outline: none;
+        box-shadow: none;
+        cursor: pointer;
+    }
+    .nav .nav-bio:focus,
+    .nav .nav-bio:active {
+        border: 0;
+        outline: none;
+        box-shadow: none;
     }
 
     .main {
         background: #FFFFFF;
+    }
+    .main .main-wrapper {
         max-width: 1440px;
         margin: 24px auto 0;
         padding: 20px 40px;
@@ -135,12 +163,15 @@
         background-color: #B45309;
     }
 
+    #filterForm {
+        margin-bottom: 20px;
+    }
     .main .filter {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
         gap: 20px;
-        margin-bottom: 20px;
+        /* margin-bottom: 20px; */
     }
     .main .filter form {
         display: flex;
@@ -175,7 +206,8 @@
     }
 
     .main .dashboard {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
     }
     .main .dashboard .card {
@@ -183,7 +215,10 @@
         border: 1px solid #EFE6F4;
         color: #6B7280;
         border-radius: 16px;
-        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        /* width: 100%; */
     }
     .main .dashboard .card .c-header {
         font-size: 14px;
@@ -195,12 +230,39 @@
     }
 
     .main .tab {
-        width: fit-content;
+        /* width: fit-content; */
         display: flex;
         justify-content: space-between;
         gap: 30px;
-        margin: auto;
+        /* margin: auto; */
         margin-bottom: 20px;
+    }
+    /* .main .tab:has(.tab-button.active[data-name="dashboard"]) {
+        width: auto;
+    } */
+    .main .tab .filter {
+        margin-left: auto;
+    }
+    .main .tab .filtering-system {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+    }
+    .main .tab .filtering-system #custom-date-range {
+        display: none;
+        gap: 12px;
+    }
+    .main .tab .filtering-system .date-box {
+        display: flex;
+        flex-direction: column;
+    }
+    .main .tab .filtering-system .date-box label {
+        color: #B5B5B5;
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .main .tab .filtering-system input {
+        width: 110px;
     }
     .main .tab button {
         font-size: 14px;
@@ -214,7 +276,9 @@
     .main .tab button.active {
         border-bottom: 2px solid #323339;
     }
-
+    /* .tab-btns:has(.tab-btn.active[data-name="table"]) + .filter {
+        display: none;
+    } */
     .main .hidden {
         display: none !important;
     }
@@ -222,112 +286,296 @@
   </style>
 </head>
 <body>
+    <div id="toast" class="toast"></div>
+
     <div class="nav">
-        <p class="nav-title">Wishlist Orders</p>
-        <div class="nav-bio">
-            <p>Ashluxe</p>
+        <div class="nav-container">
+            <p class="nav-title">Wishlist Orders</p>
+            <select class="nav-bio" id="storeSelect" onchange="redirectStore(this.value)">
+                <option value="/" <%= currentRoute === "/" ? "selected" : "" %>>Ashluxe</option>
+                <option value="/ashluxury" <%= currentRoute === "/ashluxury" ? "selected" : "" %>>Ashluxury</option>
+            </select>
         </div>
     </div>
 
     <div class="main">
-        <div class="tab">
-            <!-- <button class="tab-btn" data-name="dashboard">Dashboard</button> -->
-            <button class="tab-btn active" data-name="table">Wishlist Table</button>
-        </div>
+        <div class="main-wrapper">
+            <div class="tab">
+                <div class="tab-btns">
+                    <button class="tab-btn <%= tab === '' ? 'active' : '' %>" data-name="dashboard">Dashboard</button>
+                    <button class="tab-btn <%= tab === 'table' ? 'active' : '' %>" data-name="table">Wishlist Table</button>
+                </div>
 
-        <div class="dashboard hidden">
-            <div class="card">
-                <p class="c-header">Total Wishlist Users</p>
-                <p class="c-value">2,130</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Unique Wishlist Users</p>
-                <p class="c-value">2,130</p>
-            </div>
-            
-            <div class="card">
-                <p class="c-header">Wishlist Adoption Rate</p>
-                <p class="c-value">40%</p>
-            </div>
-        </div>
+                <div class="filter">
+                    <form id="dateForm" method="GET" action="/" onsubmit="handleDatingSubmit(event)">
+                        <div class="filtering-system">
+                            <div id="custom-date-range">
+                                <div class="date-box">
+                                    <label>From</label>
+                                    <input type="date" id="fromDate" name="fromDate" onchange="handleCustomDateChange()"/>
+                                </div>
+                                <div class="date-box">
+                                    <label>To</label>
+                                    <input type="date" id="toDate" name="toDate" onchange="handleCustomDateChange()"/>
+                                </div>
+                            </div>
 
-        <div class="table-dashboard">
-            <div class="filter">
-                <form id="filterForm" method="GET" action="/">
-                    <input 
-                        type="text" 
-                        name="search" 
-                        placeholder="Search by customer name"
-                        value="<%= search || '' %>"
-                    />
-                    <!-- <button type="submit">Filter</button> -->
-
-                    <div class="filtering-system">
-                        <p>Filter by</p>
-                        <select name="paymentStatus" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Payment Status</option>
-                            <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
-                            <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
-                        </select>
-                        <select name="fulfillmentStatus" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Fulfillment Status</option>
-                            <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
-                            <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
-                        </select>
-                    </div>
-                </form>
+                            <!-- <p>Filter by</p> -->
+                            <select name="dateStatus" onchange="handleDateStatus(this.value)">
+                                <option value="" <%= dateStatus === 'since_inception' ? 'selected' : '' %>>From Inception</option>
+                                <option value="last_7_days" <%= dateStatus === 'last_7_days' ? 'selected' : '' %>>Last 7 Days</option>
+                                <option value="last_30_days" <%= dateStatus === 'last_30_days' ? 'selected' : '' %>>Last 30 Days</option>
+                                <option value="custom" <%= dateStatus && dateStatus.startsWith('custom') ? 'selected' : '' %>>Custom</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <div class="table-wrapper">
-                <table class="order-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Order ID</th>
-                            <th>Wishlist Share ID</th>
-                            <th>Date Created</th>
-                            <th>Customer Name</th>
-                            <th>Channel</th>
-                            <th>Amount</th>
-                            <th>Payment Status</th>
-                            <th>Fulfillment Status</th>
-                            <th>Items</th>
-                            <th>Delivery Status</th>
-                            <th>Delivery method</th>
-                        </tr>
-                    </thead>
-                    
-                    <tbody>
-                        <% data.forEach((item, index)=> { %>
-                        <tr>
-                            <td><%= index+1 %></td>
-                            <td><%= item.orderId %></td>
-                            <td><%= item.wishlistShareId %></td>
-                            <td><%= item.dateCreated %></td>
-                            <td><%= item.customerName %></td>
-                            <td><%= item.channel %></td>
-                            <td><%= item.amount %></td>
-                            <td class="payment <%= item.paymentStatus %>"><span><%= item.paymentStatus %></span></td>
-                            <td class="fulfillment <%= item.paymentStatus %>"><span><%= item.fulfillmentStatus %></span></td>
-                            <td><%= item.items %></td>
-                            <td><%= item.deliveryStatus %></td>
-                            <td><%= item.deliveryMethod %></td>
-                        </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+            <div class="dashboard <%= tab === '' ? '' : 'hidden' %>">
+                <div class="card">
+                    <p class="c-header">Total Wishlist Users</p>
+                    <p class="c-value"><%= stats.totalWishlistUsers || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Unique Wishlist Users</p>
+                    <p class="c-value"><%= stats.totalWishlistUniqueUsers || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adoption Rate</p>
+                    <p class="c-value"><%= stats.wishlistAdoptionRate || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adds</p>
+                    <p class="c-value"><%= stats.wishistAdds || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Adds Per User</p>
+                    <p class="c-value"><%= stats.wishlistAddsPerUser || '0' %></p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Returning Wishlist Users</p>
+                    <p class="c-value"><%= stats.wishlistReturningUsers || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist Feature Engagement Rate</p>
+                    <p class="c-value"><%= stats.wishlistFeatureEngagementRate || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist-to-cart Conversion Rate</p>
+                    <p class="c-value"><%= stats.wishlistToCart || '0.00' %> %</p>
+                </div>
+                
+                <div class="card">
+                    <p class="c-header">Wishlist-to-purchase Conversion Rate</p>
+                    <p class="c-value"><%= stats.wishlistToPurchase || '0.00' %> %</p>
+                </div>
             </div>
 
-            <!-- <div class="table-footer">
-                <button>Previous</button>
-                <button>Next</button>
-            </div> -->
+            <div class="table-dashboard <%= tab === 'table' ? '' : 'hidden' %>">
+                <div class="filter">
+                    <form id="filterForm" method="GET" action="/" onsubmit="handleSearchSubmit(event)">
+                        <input 
+                            id="searchInput"
+                            type="text" 
+                            name="search" 
+                            placeholder="Search by name or wishlist share id or order id"
+                            value="<%= search || '' %>"
+                        />
+                        <!-- <button type="submit">Filter</button> -->
+
+                        <div class="filtering-system">
+                            <p>Filter by</p>
+                            <select name="paymentStatus" onchange="updateFilter('paymentStatus', this.value)">
+                                <option value="" disabled>Payment Status</option>
+                                <option value="" <%= paymentStatus === '' ? 'selected' : '' %>>All</option>
+                                <option value="paid" <%= paymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+                                <option value="pending" <%= paymentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="voided" <%= paymentStatus === 'voided' ? 'selected' : '' %>>Voided</option>
+                                <option value="refunded" <%= paymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+                            </select>
+                            <select name="fulfillmentStatus" onchange="updateFilter('fulfillmentStatus', this.value)">
+                                <option value="" disabled>Fulfillment Status</option>
+                                <option value="" <%= fulfillmentStatus === '' ? 'selected' : '' %>>All</option>
+                                <option value="fulfilled" <%= fulfillmentStatus === 'fulfilled' ? 'selected' : '' %>>Fulfilled</option>
+                                <option value="unfulfilled" <%= fulfillmentStatus === 'unfulfilled' ? 'selected' : '' %>>Unfulfilled</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="order-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Order ID</th>
+                                <th>Wishlist Share ID</th>
+                                <th>Date Created</th>
+                                <th>Customer Name</th>
+                                <th>Channel</th>
+                                <th>Amount</th>
+                                <th>Payment Status</th>
+                                <th>Fulfillment Status</th>
+                                <th>Items</th>
+                                <th>Delivery Status</th>
+                                <th>Delivery method</th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                            <% orders.forEach((item, index)=> { %>
+                            <tr>
+                                <td><%= index+1 %></td>
+                                <td><%= item.orderId %></td>
+                                <td><%= item.wishlistShareId %></td>
+                                <td><%= item.dateCreated %></td>
+                                <td><%= item.customerName %></td>
+                                <td><%= item.channel %></td>
+                                <td><%= item.amount %></td>
+                                <td class="payment <%= item.paymentStatus %>"><span><%= item.paymentStatus %></span></td>
+                                <td class="fulfillment <%= item.paymentStatus %>"><span><%= item.fulfillmentStatus %></span></td>
+                                <td><%= item.items %></td>
+                                <td><%= item.deliveryStatus %></td>
+                                <td><%= item.deliveryMethod %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- <div class="table-footer">
+                    <button>Previous</button>
+                    <button>Next</button>
+                </div> -->
+            </div>
         </div>
     </div>
 
 
-    <script>
+    <script>     
+        function redirectStore(value) {
+            if (value) {
+                window.location.href = value;
+            }
+        }
+
+        function handleSearchSubmit(e) {
+            e.preventDefault();
+
+            const url = new URL(window.location.href);
+            const searchValue = document.getElementById('searchInput').value.trim();
+
+            if (searchValue === '') {
+                url.searchParams.delete('search');
+            } else {
+                url.searchParams.set('search', searchValue);
+            }
+
+            // optional: reset pagination
+            // url.searchParams.delete('page');
+
+            window.location.href = url.toString();
+        }
+        
+        function updateFilter(key, value) {
+            const url = new URL(window.location.href);
+
+            if (value === '') {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, value);
+            }
+
+            window.location.href = url.toString();
+        }
+
+        function handleDateStatus(value) {
+            const customRange = document.getElementById("custom-date-range");
+            console.log('Selected date status:', value);
+            // Show/hide custom date inputs
+            if (value === "custom") {
+                customRange.style.display = "flex";
+            } else {
+                customRange.style.display = "none";
+
+                // Keep your existing updateFilter functionality
+                updateFilter('dateStatus', value);
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.style.display = "block";
+
+            setTimeout(() => {
+                toast.style.display = "none";
+            }, 3000);
+        }
+
+        function handleCustomDateChange() {
+            const from = document.getElementById("fromDate").value;
+            const to = document.getElementById("toDate").value;
+            const today = new Date().toISOString().split("T")[0];
+
+            // From date cannot be after
+            if (new Date(from) > new Date(to)) {
+                showToast("(FROM Date) cannot be after (TO Date).");
+                return;
+            }
+
+            // To date cannot be greater than today
+            if (new Date(to) > new Date(today)) {
+                showToast("(TO Date) cannot be greater than today.");
+                return;
+            }
+
+            // Only update URL when both dates are selected
+            if (from && to) {
+                const combinedValue = `custom${from}_${to}`; // or `custom${from}-${to}`
+                updateFilter('dateStatus', combinedValue);
+            }
+        }
+
+        // Show custom range if page loads with custom already selected
+        document.addEventListener("DOMContentLoaded", () => {
+            const selectedValue = "<%= dateStatus || '' %>";
+            const customRangeDiv = document.getElementById("custom-date-range");
+            const fromInput = document.getElementById("fromDate");
+            const toInput = document.getElementById("toDate");
+
+            // Check if dateStatus matches customYYYY-MM-DD_YYYY-MM-DD
+            const customRegex = /^custom(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/;
+            const match = selectedValue.match(customRegex);
+
+            // if (selectedValue === "custom") {
+            //     document.getElementById("custom-date-range").style.display = "block";
+            // }
+            if (selectedValue === "custom" || selectedValue.includes("custom")) {
+                customRangeDiv.style.display = "flex";
+            }
+
+            if (match) {
+                const from = match[1];
+                const to = match[2];
+
+                // Show inputs
+                customRangeDiv.style.display = "flex";
+
+                // Set values into inputs
+                fromInput.value = from;
+                toInput.value = to;
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             const dashboard = document.querySelector('.dashboard');
             const table = document.querySelector('.table-dashboard');
@@ -338,19 +586,22 @@
                     const currentBtn = e.currentTarget;
                     const name = currentBtn.dataset.name;
                     
+                    // Prevent unnecessary reload if the same tab is clicked
                     if (currentBtn.classList.contains('active')) return;
 
                     if (name === "dashboard") {
-                        table.classList.add('hidden');
-                        dashboard.classList.remove('hidden');
+                        // table.classList.add('hidden');
+                        // dashboard.classList.remove('hidden');
+                        updateFilter('tab', '');
                     } else {
-                        dashboard.classList.add('hidden');
-                        table.classList.remove('hidden');
+                        // dashboard.classList.add('hidden');
+                        // table.classList.remove('hidden');
+                        updateFilter('tab', 'table');
                     }
                     
-                    tabBtns.forEach(b => b.classList.remove('active'));
+                    // tabBtns.forEach(b => b.classList.remove('active'));
                     
-                    currentBtn.classList.add('active');
+                    // currentBtn.classList.add('active');
                 });
             });
         });
