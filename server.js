@@ -1022,12 +1022,66 @@ app.post("/wishlist/:wishlistId/collection", async (req, res) => {
 
 // POST WISHLIST
 // Post because of analytics
+// app.post("/wishlist/:wishlistId", async (req, res) => {
+//   const { wishlistId } = req.params;
+
+//   try {
+//     await analytics(req);
+//     // 1️⃣ Check if wishlist exists
+//     const wishlistResult = await connection.query(
+//       "SELECT * FROM wishlist WHERE id = $1",
+//       [wishlistId]
+//     );
+
+//     if (wishlistResult.rowCount === 0) {
+//       return res.status(404).json({ error: "Wishlist not found" });
+//     }
+
+//     const wishlist = wishlistResult.rows[0];
+
+//     // 2️⃣ Get all collection items linked to this wishlist
+//     const collectionsResult = await connection.query(
+//       "SELECT * FROM collectionitem WHERE wishlist_id = $1 ORDER BY created_at DESC",
+//       [wishlistId]
+//     );
+
+//     // // 3️⃣ Attach collections to the wishlist object
+//     // wishlist.collections = collectionsResult.rows;
+
+//     const collections = collectionsResult.rows;
+
+//     // 3️⃣ For each collection, get its products
+//     for (const collection of collections) {
+//       const productsResult = await connection.query(
+//         "SELECT * FROM collectionitem_product WHERE collectionitem_id = $1",
+//         [collection.id]
+//       );
+
+//       collection.products = productsResult.rows;
+//       collection.no_of_items = productsResult.rows.length;
+//     }
+
+//     // 5️⃣ Attach collections to wishlist
+//     wishlist.collections = collections;
+//     wishlist.image = await getImageUrl(wishlist.image);
+
+//     res.status(200).json({ wishlist });
+
+//   } catch (error) {
+//     console.error("Error fetching collections:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
 app.post("/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit) || 10, 50); // cap to prevent abuse
+  const offset = (page - 1) * limit;
 
   try {
     await analytics(req);
-    // 1️⃣ Check if wishlist exists
+
     const wishlistResult = await connection.query(
       "SELECT * FROM wishlist WHERE id = $1",
       [wishlistId]
@@ -1039,34 +1093,41 @@ app.post("/wishlist/:wishlistId", async (req, res) => {
 
     const wishlist = wishlistResult.rows[0];
 
-    // 2️⃣ Get all collection items linked to this wishlist
-    const collectionsResult = await connection.query(
-      "SELECT * FROM collectionitem WHERE wishlist_id = $1 ORDER BY created_at DESC",
+    // total count, needed to know when to stop showing "Load more"
+    const countResult = await connection.query(
+      "SELECT COUNT(*) FROM collectionitem WHERE wishlist_id = $1",
       [wishlistId]
     );
+    const totalCollections = parseInt(countResult.rows[0].count, 10);
 
-    // // 3️⃣ Attach collections to the wishlist object
-    // wishlist.collections = collectionsResult.rows;
+    const collectionsResult = await connection.query(
+      "SELECT * FROM collectionitem WHERE wishlist_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+      [wishlistId, limit, offset]
+    );
 
     const collections = collectionsResult.rows;
 
-    // 3️⃣ For each collection, get its products
     for (const collection of collections) {
       const productsResult = await connection.query(
         "SELECT * FROM collectionitem_product WHERE collectionitem_id = $1",
         [collection.id]
       );
-
       collection.products = productsResult.rows;
       collection.no_of_items = productsResult.rows.length;
     }
 
-    // 5️⃣ Attach collections to wishlist
     wishlist.collections = collections;
     wishlist.image = await getImageUrl(wishlist.image);
 
-    res.status(200).json({ wishlist });
-
+    res.status(200).json({
+      wishlist,
+      pagination: {
+        page,
+        limit,
+        total: totalCollections,
+        has_more: offset + collections.length < totalCollections,
+      },
+    });
   } catch (error) {
     console.error("Error fetching collections:", error);
     res.status(500).json({ error: "Internal server error" });
