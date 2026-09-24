@@ -1076,7 +1076,7 @@ app.post("/wishlist/:wishlistId/collection", async (req, res) => {
 app.post("/wishlist/:wishlistId", async (req, res) => {
   const { wishlistId } = req.params;
   const page = Math.max(parseInt(req.query.page) || 1, 1);
-  const limit = Math.min(parseInt(req.query.limit) || 10, 50); // cap to prevent abuse
+  const limit = Math.min(parseInt(req.query.limit) || 12, 48); // cap to prevent abuse
   const offset = (page - 1) * limit;
 
   try {
